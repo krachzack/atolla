@@ -17,9 +17,7 @@ function download_and_build_cmocka {
     mkdir -p vendor
     cd vendor
 
-    # We download the master version because the newest release does not build
-    # on current mac systems
-    git clone git://git.cryptomilk.org/projects/cmocka.git -b master
+    git clone git://git.cryptomilk.org/projects/cmocka.git
     cd cmocka
 
     mkdir build
