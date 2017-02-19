@@ -1,0 +1,12 @@
+#!/bin/sh
+
+mv build/.gitignore oldgitignore
+
+rm -r build && \
+ mkdir build && \
+  cd build && \
+   cmake .. -G Xcode && \
+    open Atolla.xcodeproj && \
+     cd ..
+
+mv oldgitignore build/.gitignore
