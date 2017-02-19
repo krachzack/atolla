@@ -18,10 +18,10 @@ network representations when sending or receiving.
 The protocol is comprised of different messages that are defined by means of the
 following integral data types:
 
-| Type   | Byte length   | Description                                             |
-|----------------------------------------------------------------------------------|
-| uint8  | 1             | Unsigned integer, ranges from 0 to 255                  |
-| uint16 | 2             | Unsigned integer, little-endian, ranges from 0 to 65535 |
+| Type   | Byte length   | Description                                         |
+|--------|---------------|-----------------------------------------------------|
+| uint8  | 1             | Unsigned integer, ranges from 0 to 255              |
+| uint16 | 2             | Unsigned integer, little-endian, ranges from 0 to 65535|
 | data   | 2 up to 65537 | Dynamically-sized data – Comprised of an uint16 definining length of the payload in bytes (excluding the length bytes themselves), followed by that exact number of extra bytes |
 
 ## Messages
@@ -29,7 +29,7 @@ Using the atolla protocol, the peers communicate through messages. The following
 format applies to all types of messages in the protocol:
 
 | Byte ranges, 0-based | Data type  | Purpose           |
-|-------------------------------------------------------|
+|----------------------|------------|-------------------|
 | 0                    | uint8      | Message type      |
 | 1 – 2                | uint16     | Message ID        |
 | 3 – 4+               | data       | Message payload   |
@@ -72,7 +72,7 @@ The top level data is the same as for all messages, except that the length is
 known beforehand:
 
 | Byte ranges, 0-based | Data type  | Purpose                  |
-|--------------------------------------------------------------|
+|----------------------|------------|--------------------------|
 | 0                    | uint8      | Message type, always 0   |
 | 1 – 2                | uint16     | Message ID               |
 | 3 – 6                | data       | Payload                  |
@@ -80,7 +80,7 @@ known beforehand:
 The payload is organized as follows:
 
 | Byte ranges, 0-based | Data type  | Purpose                  |
-|--------------------------------------------------------------|
+|----------------------|------------|--------------------------|
 | 3 – 4                | uint16     | Always 2, payload length |
 | 5                    | uint8      | Frame length in ms       |
 | 6                    | uint8      | Buffer length            |
@@ -119,7 +119,7 @@ be shown later.
 #### Composition
 
 | Byte ranges, 0-based | Data type  | Purpose                  |
-|--------------------------------------------------------------|
+|----------------------|------------|--------------------------|
 | 0                    | uint8      | Message type, always 2   |
 | 1 – 2                | uint16     | Message ID               |
 | 3 – 5+               | data       | Payload                  |
@@ -152,7 +152,7 @@ be interpreted as intended.
 The basic data layout remains the same.
 
 | Byte ranges, 0-based | Data type  | Purpose                  |
-|--------------------------------------------------------------|
+|----------------------|------------|--------------------------|
 | 0                    | uint8      | Message type, always 255 |
 | 1 – 2                | uint16     | Message ID               |
 | 3 – 7                | data       | Payload                  |
@@ -160,7 +160,7 @@ The basic data layout remains the same.
 The payload is organized in this way:
 
 | Byte ranges, 0-based | Data type  | Purpose                       |
-|-------------------------------------------------------------------|
+|----------------------|------------|-------------------------------|
 | 3 – 4                | uint16     | Always 3, payload length      |
 | 5 – 6                | uint16     | Message ID of causing message |
 | 7                    | uint8      | Error code                    |
@@ -168,7 +168,7 @@ The payload is organized in this way:
 The following error codes are currently defined:
 
 | Error code | Meaning                                                   |
-|------------------------------------------------------------------------|
+|------------|-----------------------------------------------------------|
 | 0          | Tried to enqueue a frame, but the device is not borrowed to the current client. The client either never sent a BORROW or another client has borrowed it now. |
 
 #### Purpose
@@ -181,5 +181,5 @@ descriptions of the error.
 ## Changelog
 
 | Version      | Changes                          |
-|-------------------------------------------------|
+|--------------|----------------------------------|
 | 1.0          | Initial version of this document |
