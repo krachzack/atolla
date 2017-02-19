@@ -55,8 +55,8 @@ Note that the maximum payload length is limited by the length of an uint16. No
 message can ever be larger than 65535 of payload plus 3 bytes of header and 2
 bytes of payload length, yielding 65540 bytes.
 
-Since the length of a message is encoded within the message, multiple
-independent can be sent in the same block of memory. E.g. one UDP datagram may
+Since the length of a message is encoded within the received memory block, multiple
+independent messages can be sent in the same block of memory. E.g. one UDP datagram may
 hold multiple messages. This also makes sending messages through a streaming
 connection possible.
 
@@ -177,6 +177,11 @@ interpreted as intended. Successful conditions, with the exception of successful
 borrowing, are never communicated back and assumed to be the default case. Fails
 communicate the type of error and which message caused it, but no human-readable
 descriptions of the error.
+
+## Security
+Here are some recommendations for implementors to provide some mimimum security:
+
+* check lengths sent by clients for overflows before using them to access memory.
 
 ## Changelog
 
