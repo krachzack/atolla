@@ -1,0 +1,26 @@
+#ifndef ATOLLA_CONFIG_H
+#define ATOLLA_CONFIG_H
+
+#define ATOLLA_VERSION_MAJOR @ATOLLA_VERSION_MAJOR@
+#define ATOLLA_VERSION_MINOR @ATOLLA_VERSION_MINOR@
+#define ATOLLA_VERSION_PATCH @ATOLLA_VERSION_PATCH@
+
+#cmakedefine HAVE_SIZE_T
+#cmakedefine HAVE_BOOL
+#cmakedefine HAVE_UINT8_T
+#cmakedefine HAVE_UINT16_T
+
+#cmakedefine HAVE_MEMSET
+#cmakedefine HAVE_MEMCPY
+#cmakedefine HAVE_MALLOC
+
+#cmakedefine HAVE_WINDOWS_SLEEP
+#cmakedefine HAVE_POSIX_SLEEP
+
+#cmakedefine HAVE_WINSOCK2
+#cmakedefine HAVE_POSIX_SOCKETS
+
+#cmakedefine NATIVE_BIG_ENDIAN
+#cmakedefine NATIVE_LITTLE_ENDIAN
+
+#endif // ATOLLA_CONFIG_H

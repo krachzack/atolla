@@ -1,0 +1,137 @@
+cmake_minimum_required (VERSION 2.6)
+project (Atolla)
+
+#
+# Specify cmake module path
+#
+set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/Modules/")
+
+
+#
+# Include custom modules
+#
+include (AddCMockaTest)
+
+#
+# Include standard modules
+#
+include (CheckSymbolExists)
+include (CheckIncludeFiles)
+include (CheckTypeSize)
+include (TestBigEndian)
+
+set (ATOLLA_VERSION_MAJOR 1)
+set (ATOLLA_VERSION_MINOR 0)
+set (ATOLLA_VERSION_PATCH 0)
+
+
+#
+# Check for headers to native bsd-style sockets
+#
+
+check_include_files ("winsock2.h" HAVE_WINSOCK2)
+check_include_files ("sys/socket.h;netinet/in.h;fcntl.h;netdb.h" HAVE_POSIX_SOCKETS)
+
+#
+# Make sure headers for special types are available
+#
+
+SET(CMAKE_EXTRA_INCLUDE_FILES stddef.h)
+CHECK_TYPE_SIZE("size_t" SIZE_T)
+SET(CMAKE_EXTRA_INCLUDE_FILES)
+
+SET(CMAKE_EXTRA_INCLUDE_FILES stdbool.h)
+CHECK_TYPE_SIZE("bool" BOOL)
+SET(CMAKE_EXTRA_INCLUDE_FILES)
+
+SET(CMAKE_EXTRA_INCLUDE_FILES stdint.h)
+CHECK_TYPE_SIZE("uint8_t" UINT8_T)
+CHECK_TYPE_SIZE("uint16_t" UINT16_T)
+SET(CMAKE_EXTRA_INCLUDE_FILES)
+
+#
+# Check for standard library functions
+#
+
+check_symbol_exists (memset "string.h" HAVE_MEMSET)
+check_symbol_exists (memcpy "string.h" HAVE_MEMCPY)
+check_symbol_exists (malloc "stdlib.h" HAVE_MALLOC)
+
+check_symbol_exists (Sleep "windows.h" HAVE_WINDOWS_SLEEP)
+check_symbol_exists (usleep "unistd.h" HAVE_POSIX_SLEEP)
+
+#
+# Check endianness
+#
+
+test_big_endian(IS_BIG_ENDIAN)
+if(IS_BIG_ENDIAN)
+    set(NATIVE_BIG_ENDIAN 1)
+    set(NATIVE_LITTLE_ENDIAN 0)
+else()
+    set(NATIVE_BIG_ENDIAN 0)
+    set(NATIVE_LITTLE_ENDIAN 1)
+endif()
+
+#
+# Write configuration to build dir
+#
+
+configure_file(src/atolla/config.h.in ${CMAKE_CURRENT_BINARY_DIR}/include/atolla/config.h)
+
+
+#
+# Set include directories
+#
+include_directories(include src ${CMAKE_CURRENT_BINARY_DIR}/include ${CMOCKA_INCLUDE})
+
+#
+# Set source files
+#
+
+set(
+    LIBRARY_HEADERS
+    ${CMAKE_CURRENT_BINARY_DIR}/include/atolla/config.h
+    include/atolla/client.h
+    include/atolla/primitives.h
+    include/atolla/sleep_ms.h
+    src/atolla/client_error_messages.h
+    src/atolla/definitions.h
+    src/mem/block.h
+    src/mem/uint16le.h
+    src/msg/builder.h
+    src/msg/iter.h
+    src/msg/type.h
+    src/udp_socket/sockets_headers.h
+    src/udp_socket/udp_socket_messages.h
+    src/udp_socket/udp_socket.h
+    src/test/assert.h
+)
+set(LIBRARY_IMPLS
+    src/atolla/client.c
+    src/mem/block.c
+    src/msg/builder.c
+    src/msg/iter.c
+    src/udp_socket/udp_socket.c
+)
+set(LIBRARY_SRC ${LIBRARY_HEADERS} ${LIBRARY_IMPLS})
+
+
+#
+# Add build tasks
+#
+
+add_library(atolla STATIC ${LIBRARY_SRC})
+add_library(atolla.${ATOLLA_VERSION_MAJOR}.${ATOLLA_VERSION_MINOR}.${ATOLLA_VERSION_PATCH} SHARED ${LIBRARY_SRC})
+
+add_executable(example_yellow examples/01-yellow.c)
+add_executable(example_sine   examples/02-sine.c)
+
+target_link_libraries(example_yellow atolla)
+target_link_libraries(example_sine atolla)
+
+add_cmocka_test(atolla_client_tests tests/atolla_client_tests.c ${LIBRARY_SRC})
+add_cmocka_test(mem_block_tests tests/mem_block_tests.c ${LIBRARY_SRC})
+add_cmocka_test(udp_socket_tests tests/udp_socket_tests.c ${LIBRARY_SRC})
+add_cmocka_test(msg_builder_tests tests/msg_builder_tests.c ${LIBRARY_SRC})
+add_cmocka_test(msg_iter_tests tests/msg_iter_tests.c ${LIBRARY_SRC})

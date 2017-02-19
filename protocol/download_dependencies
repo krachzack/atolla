@@ -1,0 +1,42 @@
+#!/bin/bash
+
+CMOCKA_ARCHIVE_URL="https://git.cryptomilk.org/projects/cmocka.git/snapshot/cmocka-1.0.1.tar.gz"
+
+function configure {
+  echo "${CYAN}Downloading dependencies...${COLOR_RESET}"
+
+  download_and_build_cmocka
+}
+
+function download_and_build_cmocka {
+  URL=$1
+  TARGET_DIRECTORY=vendor/$2
+  TARGET_ARCHIVE=${TARGET_DIRECTORY}.tar.gz
+
+  if command -v git >/dev/null 2>&1; then
+    mkdir -p vendor
+    cd vendor
+
+    # We download the master version because the newest release does not build
+    # on current mac systems
+    git clone git://git.cryptomilk.org/projects/cmocka.git -b master
+    cd cmocka
+
+    mkdir build
+    cd build
+    cmake -DCMAKE_BUILD_TYPE=Release -DWITH_STATIC_LIB=ON ..
+    make
+    cd ../../..
+  else
+    echo Cannot find git
+    echo "${RED}Test framework cannot be downloaded - Exiting...${COLOR_RESET}"
+    exit
+  fi
+}
+
+# COLORS
+RED="\033[33;31m"
+CYAN="\033[36m"
+COLOR_RESET="\033[0m"
+
+configure
