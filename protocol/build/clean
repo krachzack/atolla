@@ -1,0 +1,10 @@
+#!/bin/sh
+
+cd .. && \
+ mv build/clean clean_old && \
+  rm -r build && \
+   mkdir build && \
+    cd build && \
+     mv ../clean_old clean && \
+      cmake .. -G Xcode && \
+       open Atolla.xcodeproj
