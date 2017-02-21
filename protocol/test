@@ -29,18 +29,21 @@ echo ""
 if [ -z $FAILED_TESTS ]
 then
     echo " 🌈  All tests successful 🌈 "
+    echo ""
 else
     echo " ❌ ❌ ❌  Some tests failed:$FAILED_TESTS ❌ ❌ ❌ "
     echo ""
 
     for TEST in $FAILED_TESTS
     do
-        echo "❌    $TEST"":  Testing previously failed test again and showing output"
+        echo "❌    $TEST"":  Running previously failed test again and showing output"
         echo "==================================================================================="
         echo ""
 
         eval ./$TEST
     done
+
+    echo ""
 
     exit 1
 fi
