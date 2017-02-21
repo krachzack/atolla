@@ -13,7 +13,7 @@ static void test_borrow(void **state)
     uint8_t buffer_length = 24;
 
     msg_builder_init(&builder);
-    MemBlock* msg = msg = msg_builder_borrow(&builder, frame_length, buffer_length);
+    MemBlock* msg = msg_builder_borrow(&builder, frame_length, buffer_length);
 
     uint8_t* msg_data = (uint8_t*) msg->data;
     assert_int_equal(msg->size, 7);
