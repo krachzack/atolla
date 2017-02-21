@@ -17,13 +17,11 @@ int main(int argc, char* argv[])
     if (pid == 0)
     {
         // child process
-        printf("Starting atolla source\n");
         run_source();
     }
     else if (pid > 0)
     {
         // parent process
-        printf("Starting atolla sink\n");
         run_sink();
     }
     else
@@ -36,15 +34,37 @@ int main(int argc, char* argv[])
 
 static void run_sink()
 {
+    printf("Starting atolla sink\n");
     const size_t lights_count = 1;
     AtollaSink sink = atolla_sink_make(port, lights_count);
+
+    for(int i = 0; i < 50; ++i)
+    {
+        uint8_t frame[lights_count*3] = { 0, 0, 0 };
+        
+        bool has_frame = atolla_sink_get(&sink, frame, sizeof(frame) / sizeof(uint8_t));
+        
+        int red = frame[0];
+        int green = frame[1];
+        int blue = frame[2];
+
+        printf("(%d/%d/%d)\n", red, green, blue);
+        sleep_ms(16);
+    }
 }
 
 static void run_source()
 {
     sleep_ms(5); // Give sink some time to initialize
-
+    printf("Starting atolla source\n");
     AtollaSource source = atolla_source_make("127.0.0.1", port);
+    uint8_t frame[] = { 255, 0, 0 };
+
+    for(int i = 0; i < 50; ++i)
+    {
+        atolla_source_put(&source, frame, sizeof(frame) / sizeof(uint8_t));
+        sleep_ms(16);
+    }
 }
 
 /*#include <atolla/client.h>
