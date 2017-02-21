@@ -9,7 +9,7 @@
 const char* ATOLLA_CLIENT_HOSTNAME = "atolla.local";
 
 AtollaClient* borrow();
-bool check_connection(AtollaClient* client);
+bool check_connection(AtollaClient** client);
 void show_sine(AtollaClient* client);
 
 int main(int argc, char* argv[])
@@ -21,7 +21,7 @@ int main(int argc, char* argv[])
         sleep_ms(17);
     }
 
-    atolla_client_free(&client);
+    atolla_client_free(client);
 }
 
 
