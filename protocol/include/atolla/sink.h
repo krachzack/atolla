@@ -17,12 +17,16 @@ typedef enum AtollaSinkState AtollaSinkState;
 struct AtollaSink
 {
     AtollaSinkState state;
+    int lights_count;
     int socket_handle; // Contains socket ID to hide UdpSocket type
     void* recv_buf;
+    int frame_duration_ms;
+    void* frame_buf;
+    size_t frame_buf_len;
 };
 typedef struct AtollaSink AtollaSink;
 
-AtollaSink atolla_sink_make(int port);
+AtollaSink atolla_sink_make(int udp_port, int lights_count);
 
 AtollaSinkState atolla_sink_state(AtollaSink* sink);
 

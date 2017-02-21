@@ -36,7 +36,8 @@ int main(int argc, char* argv[])
 
 static void run_sink()
 {
-    AtollaSink sink = atolla_sink_make(port);
+    const size_t lights_count = 1;
+    AtollaSink sink = atolla_sink_make(port, lights_count);
 }
 
 static void run_source()
