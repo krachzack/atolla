@@ -122,7 +122,15 @@ be shown later.
 |----------------------|------------|--------------------------|
 | 0                    | uint8      | Message type, always 2   |
 | 1 – 2                | uint16     | Message ID               |
-| 3 – 5+               | data       | Payload                  |
+| 3 – 10+              | data       | Payload                  |
+
+The payload is organized as follows:
+
+| Byte ranges, 0-based | Data type  | Purpose                  |
+|----------------------|------------|--------------------------|
+| 3 – 4                | uint16     | Payload length, one byte for frame index plus two bytes for frame length plus that amount of frame bytes |
+| 5                    | uint8      | Frame index, 0-based     |
+| 6-10+                | data       | Two-byte length followed by that exact number of one-byte color components |
 
 
 #### Purpose
@@ -179,7 +187,11 @@ communicate the type of error and which message caused it, but no human-readable
 descriptions of the error.
 
 ## Security
-Here are some recommendations for implementors to provide some mimimum security:
+The Atolla protocol is not particularly security aware. For example, it
+provides no means for authentication or access control. Such functionality
+might be added in future versions.
+
+Nonetheless, here are some recommendations for implementors to provide some mimimum security:
 
 * check lengths sent by clients for overflows before using them to access memory.
 
