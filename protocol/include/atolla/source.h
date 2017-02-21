@@ -3,15 +3,6 @@
 
 #include "atolla/primitives.h"
 
-struct AtollaSource
-{
-    void* recv_buf;
-    size_t recv_buf_len;
-    void* send_buf;
-    size_t send_buf_len;
-}
-typedef struct AtollaSource AtollaSource;
-
 enum AtollaSourceState
 {
     // Channel is in a state of error that it cannot recover from
@@ -21,8 +12,18 @@ enum AtollaSourceState
     ATOLLA_SOURCE_STATE_WAITING,
     // Channel is open and ready for reading and writing
     ATOLLA_SOURCE_STATE_OPEN
-}
+};
 typedef enum AtollaSourceState AtollaSourceState;
+
+struct AtollaSource
+{
+    AtollaSourceState state;
+    void* recv_buf;
+    size_t recv_buf_len;
+    void* send_buf;
+    size_t send_buf_len;
+};
+typedef struct AtollaSource AtollaSource;
 
 AtollaSource atolla_source_make(const char* sink_hostname, int sink_port);
 

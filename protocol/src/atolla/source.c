@@ -1,15 +1,17 @@
 #include "atolla/source.h"
 
-#include <assert.h>
+#include "test/assert.h"
 
 AtollaSource atolla_source_make(const char* sink_hostname, int sink_port)
 {
+    AtollaSource source;
     assert(false);
+    return source;
 }
 
 AtollaSourceState atolla_source_state(AtollaSource* source)
 {
-    assert(false);
+    return source->state;
 }
 
 /**
@@ -21,4 +23,5 @@ AtollaSourceState atolla_source_state(AtollaSource* source)
 bool atolla_source_put(AtollaSource* source, void* frame, size_t frame_len)
 {
     assert(false);
+    return false;
 }
