@@ -150,6 +150,8 @@ static void test_reallocations(void **state)
     // allocated memory that is now referenced by moth MemBlock pointers
     assert_ptr_not_equal(old_msg_data, old_msg->data);
     assert_ptr_not_equal(old_msg_data, new_msg->data);
+
+    free(some_frame);
 }
 
 int main(void)
