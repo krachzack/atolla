@@ -1,4 +1,4 @@
-#include "atolla/client.h"
+#include "atolla/sink.h"
 
 #include <stdarg.h>
 #include <stddef.h>

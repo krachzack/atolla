@@ -1,10 +1,10 @@
 #include "msg/builder.h"
 
+#include <stdlib.h>
 #include <stdarg.h>
 #include <stddef.h>
 #include <setjmp.h>
 #include <cmocka.h>
-#include <stdlib.h>
 
 static void test_borrow(void **state)
 {
