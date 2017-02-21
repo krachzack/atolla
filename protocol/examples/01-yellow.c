@@ -1,3 +1,51 @@
+#include <atolla/sink.h>
+#include <atolla/source.h>
+#include <atolla/sleep_ms.h>
+
+#include <unistd.h> // for fork
+#include <stdio.h>
+
+const int port = 4242;
+
+static void run_sink();
+static void run_source();
+
+int main(int argc, char* argv[])
+{
+    pid_t pid = fork();
+
+    if (pid == 0)
+    {
+        // child process
+        printf("Starting atolla source\n");
+        run_source();
+    }
+    else if (pid > 0)
+    {
+        // parent process
+        printf("Starting atolla sink\n");
+        run_sink();
+    }
+    else
+    {
+        // fork failed
+        printf("fork() failed!\n");
+        return 1;
+    }
+}
+
+static void run_sink()
+{
+    AtollaSink sink = atolla_sink_make(port);
+}
+
+static void run_source()
+{
+    sleep_ms(5); // Give sink some time to initialize
+
+    AtollaSource source = atolla_source_make("127.0.0.1", port);
+}
+
 /*#include <atolla/client.h>
 #include <atolla/sleep_ms.h>
 #include <stdint.h>
@@ -9,16 +57,16 @@ static const char* ATOLLA_CLIENT_HOSTNAME = "atolla.local";
 
 AtollaClient* borrow();
 void check_connection(AtollaClient* client);
-void make_yellow(AtollaClient* client);*/
+void make_yellow(AtollaClient* client);
 
 int main(int argc, char* argv[])
 {
-    /*AtollaClient* client = borrow();
+    AtollaClient* client = borrow();
     make_yellow(client);
     sleep_ms(5 * 3600 * 1000);
-    atolla_client_free(client);*/
+    atolla_client_free(client);
 }
-/*
+
 AtollaClient* borrow()
 {
     AtollaClientBorrow borrow = atolla_client_borrow(
