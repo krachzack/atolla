@@ -9,7 +9,6 @@
 
 static const size_t recv_buf_len = 3 + 65537;
 
-static void update(AtollaSink* sink);
 static void borrow(AtollaSink* sink, int frame_length_ms, size_t buffer_length);
 static void enqueue(AtollaSink* sink, size_t frame_idx, MemBlock frame);
 
@@ -41,22 +40,25 @@ AtollaSinkState atolla_sink_state(AtollaSink* sink)
 
 bool atolla_sink_get(AtollaSink* sink, void* frame, size_t frame_len)
 {
-    update(sink);
+    bool lent = sink->state == ATOLLA_SINK_STATE_LENT;
 
-    const size_t frame_size = sink->lights_count * 3;
-    assert(frame_len >= frame_size);
+    if(lent)
+    {
+        const size_t frame_size = sink->lights_count * 3;
+        assert(frame_len >= frame_size);
 
-    // FIXME this should be determined by time, not fixed at 1
-    size_t frame_idx = 1;
-    
-    void* frame_buf_frame = ((uint8_t*) sink->frame_buf) + (frame_idx * frame_size);
+        // FIXME this should be determined by time, not fixed at 1
+        size_t frame_idx = 1;
+        
+        void* frame_buf_frame = ((uint8_t*) sink->frame_buf) + (frame_idx * frame_size);
 
-    memcpy(frame, frame_buf_frame, frame_size);
+        memcpy(frame, frame_buf_frame, frame_size);
+    }
 
-    return true;
+    return lent;
 }
 
-static void update(AtollaSink* sink)
+void atolla_sink_update(AtollaSink* sink)
 {
     UdpSocket sock = { sink->socket_handle };
     size_t received_len;

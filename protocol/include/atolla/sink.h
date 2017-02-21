@@ -30,6 +30,8 @@ AtollaSink atolla_sink_make(int udp_port, int lights_count);
 
 AtollaSinkState atolla_sink_state(AtollaSink* sink);
 
+void atolla_sink_update(AtollaSink* sink);
+
 bool atolla_sink_get(AtollaSink* sink, void* frame, size_t frame_len);
 
 #endif // ATOLLA_SINK_H
