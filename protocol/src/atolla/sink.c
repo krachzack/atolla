@@ -5,6 +5,7 @@
 #include "test/assert.h"
 
 #include <stdlib.h>
+#include <string.h>
 
 static const size_t recv_buf_len = 3 + 65537;
 
@@ -41,7 +42,18 @@ AtollaSinkState atolla_sink_state(AtollaSink* sink)
 bool atolla_sink_get(AtollaSink* sink, void* frame, size_t frame_len)
 {
     update(sink);
-    return false;
+
+    const size_t frame_size = sink->lights_count * 3;
+    assert(frame_len >= frame_size);
+
+    // FIXME this should be determined by time, not fixed at 1
+    size_t frame_idx = 1;
+    
+    void* frame_buf_frame = ((uint8_t*) sink->frame_buf) + (frame_idx * frame_size);
+
+    memcpy(frame, frame_buf_frame, frame_size);
+
+    return true;
 }
 
 static void update(AtollaSink* sink)
