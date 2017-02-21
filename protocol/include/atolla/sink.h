@@ -5,23 +5,20 @@
 
 enum AtollaSinkState
 {
-    // Channel is in a state of error that it cannot recover from
+    // Sink is in a state of error that it cannot recover from
     ATOLLA_SINK_STATE_ERROR,
-    // Channel is waiting for a response from the other end or the device was
-    // relent
-    ATOLLA_SINK_STATE_WAITING,
-    // Channel is open and ready for reading and writing
-    ATOLLA_SINK_STATE_OPEN
+    // Sink is ready for a source to connect to it
+    ATOLLA_SINK_STATE_OPEN,
+    // Sink is currently connected to a source
+    ATOLLA_SINK_STATE_LENT
 };
 typedef enum AtollaSinkState AtollaSinkState;
 
 struct AtollaSink
 {
     AtollaSinkState state;
+    int socket_handle; // Contains socket ID to hide UdpSocket type
     void* recv_buf;
-    size_t recv_buf_len;
-    void* send_buf;
-    size_t send_buf_len;
 };
 typedef struct AtollaSink AtollaSink;
 

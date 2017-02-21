@@ -19,9 +19,8 @@ struct AtollaSource
 {
     AtollaSourceState state;
     void* recv_buf;
-    size_t recv_buf_len;
     void* send_buf;
-    size_t send_buf_len;
+    int socket_handle;
 };
 typedef struct AtollaSource AtollaSource;
 
