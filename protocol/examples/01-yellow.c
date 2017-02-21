@@ -1,4 +1,4 @@
-#include <atolla/client.h>
+/*#include <atolla/client.h>
 #include <atolla/sleep_ms.h>
 #include <stdint.h>
 #include <unistd.h>
@@ -9,16 +9,16 @@ static const char* ATOLLA_CLIENT_HOSTNAME = "atolla.local";
 
 AtollaClient* borrow();
 void check_connection(AtollaClient* client);
-void make_yellow(AtollaClient* client);
+void make_yellow(AtollaClient* client);*/
 
 int main(int argc, char* argv[])
 {
-    AtollaClient* client = borrow();
+    /*AtollaClient* client = borrow();
     make_yellow(client);
     sleep_ms(5 * 3600 * 1000);
-    atolla_client_free(client);
+    atolla_client_free(client);*/
 }
-
+/*
 AtollaClient* borrow()
 {
     AtollaClientBorrow borrow = atolla_client_borrow(
@@ -56,3 +56,4 @@ void make_yellow(AtollaClient* client)
     atolla_client_enqueue(client, frame, frame_len);
     atolla_client_flush(client);
 }
+*/

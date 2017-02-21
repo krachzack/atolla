@@ -1,4 +1,4 @@
-#include <atolla/client.h>
+/*#include <atolla/client.h>
 #include <atolla/sleep_ms.h>
 #include <stdint.h>
 #include <unistd.h>
@@ -10,22 +10,22 @@ const char* ATOLLA_CLIENT_HOSTNAME = "atolla.local";
 
 AtollaClient* borrow();
 bool check_connection(AtollaClient** client);
-void show_sine(AtollaClient* client);
+void show_sine(AtollaClient* client);*/
 
 int main(int argc, char* argv[])
 {
-    AtollaClient* client = borrow();
+    /*AtollaClient* client = borrow();
 
     while(client && check_connection(&client)) {
         show_sine(client);
         sleep_ms(17);
     }
 
-    atolla_client_free(client);
+    atolla_client_free(client);*/
 }
 
 
-AtollaClient* borrow()
+/*AtollaClient* borrow()
 {
     AtollaClientBorrow borrow = atolla_client_borrow(
         17, // frame length in ms, equivavalent to ~60 frames per second
@@ -108,4 +108,4 @@ void show_sine(AtollaClient* client)
     }
 
     atolla_client_flush(client);
-}
+}*/
