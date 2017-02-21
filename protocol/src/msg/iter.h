@@ -89,6 +89,17 @@ uint8_t msg_iter_borrow_frame_length(MsgIter* iter);
 uint8_t msg_iter_borrow_buffer_length(MsgIter* iter);
 
 /**
+ * Get the contained frame index of a currently selected ENQUEUE message.
+ *
+ * If the iterator is already at the end of the buffer, or if the currently
+ * selected message has a type different from MSG_TYPE_ENQUEUE, the behavior of
+ * this function is undefined. Do not call it with an iterator if
+ * msg_iter_has_msg returns false or if msg_iter_type returns a type different
+ * from MSG_TYPE_ENQUEUE.
+ */
+uint8_t msg_iter_enqueue_frame_idx(MsgIter* iter);
+
+/**
  * Get the contained frame of a currently selected ENQUEUE message.
  *
  * If the iterator is already at the end of the buffer, or if the currently

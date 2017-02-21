@@ -83,6 +83,7 @@ MemBlock* msg_builder_lent(
  */
 MemBlock* msg_builder_enqueue(
     MsgBuilder* builder,
+    uint8_t frame_idx,
     void* frame,
     size_t frame_len
 );

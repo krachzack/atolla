@@ -56,23 +56,27 @@ static void test_enqueue(void **state)
     size_t frame_len = sizeof(frame) / sizeof(uint8_t);
 
     msg_builder_init(&builder);
-    MemBlock* msg_block = msg_builder_enqueue(&builder, frame, frame_len);
+    MemBlock* msg_block = msg_builder_enqueue(&builder, 42, frame, frame_len);
 
     uint8_t* msg = (uint8_t*) msg_block->data;
-    assert_int_equal(msg_block->size, (5 + 6)); // 5 bytes header, 6 bytes payload
+    assert_int_equal(msg_block->size, (5 + 1 + 2 + 6)); // 5 bytes header, 9 bytes payload
     assert_int_equal(msg[0], 2); // message type for enqueue is 2
     assert_int_equal(msg[1], 0); // message ID least significant byte is 0
     assert_int_equal(msg[2], 0); // message ID most significant byte is 0
-    assert_int_equal(msg[3], 6); // payload length least significant byte is 0
+    assert_int_equal(msg[3], 3 + 6); // payload length least significant byte is 9 for frame_idx, frame_len and the frame itself
     assert_int_equal(msg[4], 0); // payload length most significant byte is 0
 
-    assert_int_equal(msg[5], 1);
-    assert_int_equal(msg[6], 2);
-    assert_int_equal(msg[7], 3);
+    assert_int_equal(msg[5], 42); // frame idx is 42
+    assert_int_equal(msg[6], 6);  // frame length least significant byte is 6
+    assert_int_equal(msg[7], 0);  // frame length most significant byte is 0
 
-    assert_int_equal(msg[8], 4);
-    assert_int_equal(msg[9], 5);
-    assert_int_equal(msg[10], 6);
+    assert_int_equal(msg[8], 1);
+    assert_int_equal(msg[9], 2);
+    assert_int_equal(msg[10], 3);
+
+    assert_int_equal(msg[11], 4);
+    assert_int_equal(msg[12], 5);
+    assert_int_equal(msg[13], 6);
 
     msg_builder_free(&builder);
 }
@@ -138,7 +142,7 @@ static void test_reallocations(void **state)
     void* old_msg_data = old_msg->data;
 
     void* some_frame = malloc(1024 * 10);
-    MemBlock* new_msg = msg_builder_enqueue(&builder, some_frame, 1024 * 10);
+    MemBlock* new_msg = msg_builder_enqueue(&builder, 42, some_frame, 1024 * 10);
 
     // points to the same internal MemBlock, therefore the old message changed (inteneded behavior)
     assert_ptr_equal(old_msg->data, new_msg->data);

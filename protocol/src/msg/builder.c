@@ -94,11 +94,24 @@ MemBlock* msg_builder_lent(
 
 MemBlock* msg_builder_enqueue(
     MsgBuilder* builder,
+    uint8_t frame_idx,
     void* frame,
     size_t frame_len
 )
 {
-    return build(builder, MSG_TYPE_ENQUEUE, frame, frame_len);
+    const size_t frame_idx_len = sizeof(uint8_t);
+    const size_t frame_len_len = sizeof(uint16_t);
+    const size_t payload_len = frame_idx_len + frame_len_len + frame_len;
+    uint8_t payload[payload_len];
+
+    payload[0] = frame_idx;
+    uint16_t* payload_frame_len = (uint16_t*) &payload[1];
+    void* payload_frame = (void*) &payload[3];
+
+    *payload_frame_len = mem_uint16le_to(frame_len);
+    memcpy(payload_frame, frame, frame_len);    
+
+    return build(builder, MSG_TYPE_ENQUEUE, payload, payload_len);
 }
 
 MemBlock* msg_builder_fail(
