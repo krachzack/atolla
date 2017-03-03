@@ -1,5 +1,15 @@
 /*#include <atolla/client.h>
-#include <atolla/sleep_ms.h>
+#include "atolla/config.h"
+
+#if defined(HAVE_POSIX_SLEEP)
+    #include <unistd.h>
+    #define sleep_ms(ms) (usleep((ms) * 1000))
+#elif defined(HAVE_WINDOWS_SLEEP)
+    #include <windows.h>
+    #define sleep_ms(ms) (Sleep((ms)))
+#else
+    #error "No sleep function available"
+#endif
 #include <stdint.h>
 #include <unistd.h>
 #include <stdio.h>

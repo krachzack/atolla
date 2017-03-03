@@ -94,7 +94,6 @@ set(
     ${CMAKE_CURRENT_BINARY_DIR}/include/atolla/config.h
     include/atolla/primitives.h
     include/atolla/sink.h
-    include/atolla/sleep_ms.h
     include/atolla/source.h
     src/atolla/definitions.h
     src/mem/block.h
