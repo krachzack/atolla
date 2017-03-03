@@ -23,6 +23,13 @@ typedef struct AtollaSource AtollaSource;
 
 AtollaSource atolla_source_make(const char* sink_hostname, int sink_port, int frame_length_ms, int max_buffered_frames);
 
+/**
+ * Orderly shuts down the source first and then frees associated resources.
+ * The source referenced by the given source handle may not be used after calling
+ * this function.
+ */
+void atolla_source_free(AtollaSource source);
+
 AtollaSourceState atolla_source_state(AtollaSource source);
 
 /**

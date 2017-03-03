@@ -43,6 +43,16 @@ AtollaSource atolla_source_make(const char* sink_hostname, int sink_port, int fr
     return source_handle;
 }
 
+void atolla_source_free(AtollaSource source_handle)
+{
+    AtollaSourcePrivate* source = (AtollaSourcePrivate*) source_handle.private;
+
+    UdpSocketResult result = udp_socket_free(&source->sock);
+    assert(result.code == UDP_SOCKET_OK);
+
+    free(source);
+}
+
 AtollaSourceState atolla_source_state(AtollaSource source_handle)
 {
     AtollaSourcePrivate* source = (AtollaSourcePrivate*) source_handle.private;
