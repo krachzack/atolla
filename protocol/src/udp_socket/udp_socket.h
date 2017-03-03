@@ -195,6 +195,8 @@ UdpSocketResult udp_socket_send(UdpSocket* socket, void* packet_data, size_t pac
 /**
  * TODO document
  *
+ * then_respond makes that sends always send to the partner last received from.
+ *
  * The result of the operation will be signalled with the returned UdpSocketResult
  * structure. A successful completion will be signalled with the <code>code</code>
  * property being set to <code>UDP_SOCKET_OK</code>, which is equivalent to
@@ -203,6 +205,6 @@ UdpSocketResult udp_socket_send(UdpSocket* socket, void* packet_data, size_t pac
  * <code>UDP_SOCKET_ERR_*</code> values and the <code>msg</code> property pointing
  * to a human readable error message.
  */
-UdpSocketResult udp_socket_receive(UdpSocket* socket, void* packet_buffer, size_t packet_buffer_capacity, size_t* received_byte_count);
+UdpSocketResult udp_socket_receive(UdpSocket* socket, void* packet_buffer, size_t packet_buffer_capacity, size_t* received_byte_count, bool then_respond);
 
 #endif /* _udp_socket_h_ */

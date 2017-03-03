@@ -117,14 +117,14 @@ static void test_send_and_receive(void** state)
     result = udp_socket_send(&socket1, &data, sizeof(data));
     assert_int_equal(result.code, UDP_SOCKET_OK);
 
-    result = udp_socket_receive(&socket2, &received, sizeof(received), &received_bytes);
+    result = udp_socket_receive(&socket2, &received, sizeof(received), &received_bytes, false);
 
     /** Receiving is expected to take some time, since sockets are non-blocking */
     assert_int_equal(result.code, UDP_SOCKET_ERR_NOTHING_RECEIVED);
     assert_int_equal(received_bytes, 0);
 
     time_sleep(500);
-    result = udp_socket_receive(&socket2, &received, sizeof(received), &received_bytes);
+    result = udp_socket_receive(&socket2, &received, sizeof(received), &received_bytes, false);
 
     assert_int_equal(result.code, UDP_SOCKET_OK);
     assert_int_equal(received_bytes, sizeof(received));
@@ -135,7 +135,7 @@ static void test_send_and_receive(void** state)
 
     time_sleep(500);
     // received_bytes is optional
-    result = udp_socket_receive(&socket2, &received, sizeof(received), NULL);
+    result = udp_socket_receive(&socket2, &received, sizeof(received), NULL, false);
     assert_int_equal(result.code, UDP_SOCKET_OK);
 
     result = udp_socket_free(&socket1);

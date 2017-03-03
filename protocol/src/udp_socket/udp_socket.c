@@ -379,7 +379,7 @@ UdpSocketResult udp_socket_send(UdpSocket* socket, void* packet_data, size_t pac
     return make_success_result();
 }
 
-UdpSocketResult udp_socket_receive(UdpSocket* socket, void* packet_data, size_t max_packet_size, size_t* received_byte_count)
+UdpSocketResult udp_socket_receive(UdpSocket* socket, void* packet_data, size_t max_packet_size, size_t* received_byte_count, bool then_respond)
 {
     assert(packet_data != NULL);
     assert(max_packet_size > 0);
@@ -429,7 +429,16 @@ UdpSocketResult udp_socket_receive(UdpSocket* socket, void* packet_data, size_t 
             *received_byte_count = (size_t) received_bytes;
         }
 
-        // REVIEW should the sender address be made available to the caller?
+        // REVIEW should the sender address be made available to the caller instead of this thing?
+        if(then_respond)
+        {
+            connect(
+                socket->socket_handle,
+                (const struct sockaddr*) &from,
+                from_len
+            );
+        }
+
         return make_success_result();
     }
 }
