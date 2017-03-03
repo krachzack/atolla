@@ -17,16 +17,13 @@ typedef enum AtollaSourceState AtollaSourceState;
 
 struct AtollaSource
 {
-    AtollaSourceState state;
-    void* recv_buf;
-    void* send_buf;
-    int socket_handle;
+    void* private;
 };
 typedef struct AtollaSource AtollaSource;
 
-AtollaSource atolla_source_make(const char* sink_hostname, int sink_port);
+AtollaSource atolla_source_make(const char* sink_hostname, int sink_port, int frame_length_ms, int max_buffered_frames);
 
-AtollaSourceState atolla_source_state(AtollaSource* source);
+AtollaSourceState atolla_source_state(AtollaSource source);
 
 /**
  * Tries to enqueue the given frame in the connected sink.
@@ -34,6 +31,6 @@ AtollaSourceState atolla_source_state(AtollaSource* source);
  * The call might block for some time in order to wait for the device to catch
  * up displaying the previously sent frames.
  */
-bool atolla_source_put(AtollaSource* source, void* frame, size_t frame_len);
+bool atolla_source_put(AtollaSource source, void* frame, size_t frame_len);
 
 #endif // ATOLLA_SOURCE_H

@@ -64,7 +64,7 @@ static void run_source()
 
     for(int i = 0; i < 50; ++i)
     {
-        atolla_source_put(&source, frame, sizeof(frame) / sizeof(uint8_t));
+        atolla_source_put(source, frame, sizeof(frame) / sizeof(uint8_t));
     }
 }
 
