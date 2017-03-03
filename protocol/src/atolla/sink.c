@@ -50,6 +50,16 @@ AtollaSink atolla_sink_make(int udp_port, int lights_count)
     return sink_handle;
 }
 
+void atolla_sink_free(AtollaSink sink)
+{
+    AtollaSinkPrivate* private = (AtollaSinkPrivate*) sink.private;
+
+    UdpSocketResult result = udp_socket_free(&private->socket);
+    assert(result.code == UDP_SOCKET_OK);
+
+    free(private);
+}
+
 AtollaSinkState atolla_sink_state(AtollaSink sink)
 {
     AtollaSinkPrivate* private = (AtollaSinkPrivate*) sink.private;

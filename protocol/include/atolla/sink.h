@@ -22,6 +22,8 @@ typedef struct AtollaSink AtollaSink;
 
 AtollaSink atolla_sink_make(int udp_port, int lights_count);
 
+void atolla_sink_free(AtollaSink sink);
+
 AtollaSinkState atolla_sink_state(AtollaSink sink);
 
 void atolla_sink_update(AtollaSink sink);
