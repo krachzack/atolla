@@ -7,50 +7,69 @@
 #include <stdlib.h>
 #include <string.h>
 
+struct AtollaSinkPrivate
+{
+    void* recv_buf;
+    size_t recv_buf_len;
+    UdpSocket socket;
+
+    AtollaSinkState state;
+    int lights_count;
+    int socket_handle; // Contains socket ID to hide UdpSocket type
+    int frame_duration_ms;
+    void* frame_buf;
+    size_t frame_buf_len;
+};
+typedef struct AtollaSinkPrivate AtollaSinkPrivate;
+
 static const size_t recv_buf_len = 3 + 65537;
 
-static void borrow(AtollaSink* sink, int frame_length_ms, size_t buffer_length);
-static void enqueue(AtollaSink* sink, size_t frame_idx, MemBlock frame);
+static void iterate_recv_buf(AtollaSinkPrivate* sink, size_t received_bytes);
+static void borrow(AtollaSinkPrivate* sink, int frame_length_ms, size_t buffer_length);
+static void enqueue(AtollaSinkPrivate* sink, size_t frame_idx, MemBlock frame);
 
 AtollaSink atolla_sink_make(int udp_port, int lights_count)
 {
-    AtollaSink sink;
+    AtollaSinkPrivate* sink = (AtollaSinkPrivate*) malloc(sizeof(AtollaSinkPrivate));
     
     UdpSocket socket;
     UdpSocketResult result = udp_socket_init_on_port(&socket, (unsigned short) udp_port);
     assert(result.code == UDP_SOCKET_OK);
 
-    sink.state = ATOLLA_SINK_STATE_OPEN;
-    sink.lights_count = lights_count;
-    sink.socket_handle = socket.socket_handle;
-    sink.recv_buf = malloc(recv_buf_len);
-    sink.frame_buf = NULL;
-    sink.frame_buf_len = 0;
+    sink->state = ATOLLA_SINK_STATE_OPEN;
+    sink->lights_count = lights_count;
+    sink->socket_handle = socket.socket_handle;
+    sink->recv_buf = malloc(recv_buf_len);
+    sink->frame_buf = NULL;
+    sink->frame_buf_len = 0;
 
-    assert(sink.lights_count >= 1);
-    assert(sink.recv_buf);
+    assert(sink->lights_count >= 1);
+    assert(sink->recv_buf);
 
-    return sink;
+    AtollaSink sink_handle = { sink };
+    return sink_handle;
 }
 
-AtollaSinkState atolla_sink_state(AtollaSink* sink)
+AtollaSinkState atolla_sink_state(AtollaSink sink)
 {
-    return sink->state;
+    AtollaSinkPrivate* private = (AtollaSinkPrivate*) sink.private;
+    return private->state;
 }
 
-bool atolla_sink_get(AtollaSink* sink, void* frame, size_t frame_len)
+bool atolla_sink_get(AtollaSink sink, void* frame, size_t frame_len)
 {
-    bool lent = sink->state == ATOLLA_SINK_STATE_LENT;
+    AtollaSinkPrivate* private = (AtollaSinkPrivate*) sink.private;
+    bool lent = private->state == ATOLLA_SINK_STATE_LENT;
 
     if(lent)
     {
-        const size_t frame_size = sink->lights_count * 3;
+        const size_t frame_size = private->lights_count * 3;
         assert(frame_len >= frame_size);
 
         // FIXME this should be determined by time, not fixed at 1
         size_t frame_idx = 1;
         
-        void* frame_buf_frame = ((uint8_t*) sink->frame_buf) + (frame_idx * frame_size);
+        void* frame_buf_frame = ((uint8_t*) private->frame_buf) + (frame_idx * frame_size);
 
         memcpy(frame, frame_buf_frame, frame_size);
     }
@@ -58,54 +77,61 @@ bool atolla_sink_get(AtollaSink* sink, void* frame, size_t frame_len)
     return lent;
 }
 
-void atolla_sink_update(AtollaSink* sink)
+void atolla_sink_update(AtollaSink sink_handle)
 {
-    UdpSocket sock = { sink->socket_handle };
+    AtollaSinkPrivate* private = (AtollaSinkPrivate*) sink_handle.private;
+    
+    UdpSocket sock = { private->socket_handle };
     size_t received_len;
     UdpSocketResult result;
 
     result = udp_socket_receive(
         &sock,
-        sink->recv_buf, recv_buf_len,
+        private->recv_buf, recv_buf_len,
         &received_len
     );
 
     if(result.code == UDP_SOCKET_OK)
     {
-        MsgIter iter = msg_iter_make(sink->recv_buf, received_len);
-        while(msg_iter_has_msg(&iter))
+        iterate_recv_buf(private, received_len);
+    }
+}
+
+static void iterate_recv_buf(AtollaSinkPrivate* private, size_t received_len)
+{
+    MsgIter iter = msg_iter_make(private->recv_buf, received_len);
+    while(msg_iter_has_msg(&iter))
+    {
+        MsgType type = msg_iter_type(&iter);
+
+        switch(type)
         {
-            MsgType type = msg_iter_type(&iter);
-
-            switch(type)
+            case MSG_TYPE_BORROW:
             {
-                case MSG_TYPE_BORROW:
-                {
-                    uint8_t frame_len = msg_iter_borrow_frame_length(&iter);
-                    uint8_t buffer_len = msg_iter_borrow_buffer_length(&iter);
-                    borrow(sink, frame_len, buffer_len);
-                    break;
-                }
+                uint8_t frame_len = msg_iter_borrow_frame_length(&iter);
+                uint8_t buffer_len = msg_iter_borrow_buffer_length(&iter);
+                borrow(private, frame_len, buffer_len);
+                break;
+            }
 
-                case MSG_TYPE_ENQUEUE:
-                {
-                    uint8_t frame_idx = msg_iter_enqueue_frame_idx(&iter);
-                    MemBlock frame = msg_iter_enqueue_frame(&iter);
-                    enqueue(sink, frame_idx, frame);
-                    break;
-                }
+            case MSG_TYPE_ENQUEUE:
+            {
+                uint8_t frame_idx = msg_iter_enqueue_frame_idx(&iter);
+                MemBlock frame = msg_iter_enqueue_frame(&iter);
+                enqueue(private, frame_idx, frame);
+                break;
+            }
 
-                default:
-                {
-                    assert(false);
-                    break;
-                }
+            default:
+            {
+                assert(false);
+                break;
             }
         }
     }
 }
 
-static void borrow(AtollaSink* sink, int frame_length_ms, size_t buffer_length)
+static void borrow(AtollaSinkPrivate* sink, int frame_length_ms, size_t buffer_length)
 {
     assert(buffer_length >= 0);
     assert(frame_length_ms >= 0);
@@ -121,7 +147,7 @@ static void borrow(AtollaSink* sink, int frame_length_ms, size_t buffer_length)
     sink->state = ATOLLA_SINK_STATE_LENT;
 }
 
-static void enqueue(AtollaSink* sink, size_t frame_idx, MemBlock frame)
+static void enqueue(AtollaSinkPrivate* sink, size_t frame_idx, MemBlock frame)
 {
     const size_t frame_size = sink->lights_count * 3;
     const size_t frame_buf_frame_count = sink->frame_buf_len / frame_size;

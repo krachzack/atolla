@@ -6,6 +6,8 @@
 #include <stdio.h>
 
 const int port = 4242;
+const int frame_length_ms = 17;
+const int max_buffered_frames = 10;
 
 static void run_sink();
 static void run_source();
@@ -42,14 +44,14 @@ static void run_sink()
     {
         uint8_t frame[lights_count*3] = { 0, 0, 0 };
         
-        bool has_frame = atolla_sink_get(&sink, frame, sizeof(frame) / sizeof(uint8_t));
+        bool has_frame = atolla_sink_get(sink, frame, sizeof(frame) / sizeof(uint8_t));
         
         int red = frame[0];
         int green = frame[1];
         int blue = frame[2];
 
         printf("(%d/%d/%d)\n", red, green, blue);
-        sleep_ms(16);
+        sleep_ms(frame_length_ms);
     }
 }
 
@@ -57,13 +59,12 @@ static void run_source()
 {
     sleep_ms(5); // Give sink some time to initialize
     printf("Starting atolla source\n");
-    AtollaSource source = atolla_source_make("127.0.0.1", port);
+    AtollaSource source = atolla_source_make("127.0.0.1", port, frame_length_ms, max_buffered_frames);
     uint8_t frame[] = { 255, 0, 0 };
 
     for(int i = 0; i < 50; ++i)
     {
         atolla_source_put(&source, frame, sizeof(frame) / sizeof(uint8_t));
-        sleep_ms(16);
     }
 }
 
