@@ -106,6 +106,10 @@ set(
     src/udp_socket/udp_socket_messages.h
     src/udp_socket/udp_socket.h
     src/test/assert.h
+    src/time/gettime.h
+    src/time/mach_gettime.h
+    src/time/now.h
+    src/time/sleep.h
 )
 set(LIBRARY_IMPLS
     src/atolla/sink.c
@@ -114,6 +118,8 @@ set(LIBRARY_IMPLS
     src/msg/builder.c
     src/msg/iter.c
     src/udp_socket/udp_socket.c
+    src/time/mach_gettime.c
+    src/time/now.c
 )
 set(LIBRARY_SRC ${LIBRARY_HEADERS} ${LIBRARY_IMPLS})
 
@@ -139,6 +145,7 @@ add_cmocka_test(msg_builder_tests tests/msg_builder_tests.c ${LIBRARY_SRC})
 add_cmocka_test(msg_iter_tests    tests/msg_iter_tests.c    ${LIBRARY_SRC})
 add_cmocka_test(sink_tests        tests/sink_tests.c        ${LIBRARY_SRC})
 add_cmocka_test(source_tests      tests/source_tests.c      ${LIBRARY_SRC})
+add_cmocka_test(time_tests        tests/time_tests.c        ${LIBRARY_SRC})
 add_cmocka_test(udp_socket_tests  tests/udp_socket_tests.c  ${LIBRARY_SRC})
 
-add_custom_target(test_all DEPENDS mem_block_tests msg_builder_tests msg_iter_tests sink_tests source_tests udp_socket_tests COMMAND ../test)
+add_custom_target(test_all DEPENDS mem_block_tests msg_builder_tests msg_iter_tests sink_tests source_tests time_tests udp_socket_tests COMMAND ../test)
