@@ -149,7 +149,7 @@ static void iterate_recv_buf(AtollaSourcePrivate* source, size_t received_bytes)
 {
     MsgIter iter = msg_iter_make(source->recv_buf, received_bytes);
 
-    while(msg_iter_has_msg(&iter))
+    for(; msg_iter_has_msg(&iter); msg_iter_next(&iter))
     {
         MsgType type = msg_iter_type(&iter);
 
@@ -174,7 +174,5 @@ static void iterate_recv_buf(AtollaSourcePrivate* source, size_t received_bytes)
                 break;
             }
         }
-        
-        msg_iter_next(&iter);
     }
 }
