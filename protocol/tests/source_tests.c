@@ -18,6 +18,9 @@
 const int loopback_send_time_ms = 5;
 const int frame_ms = 17;
 const int buffered_frame_count = 60;
+const int retry_timeout_ms = loopback_send_time_ms * 3;
+const int max_retry_count = 5;
+const int disconnect_timeout_ms = retry_timeout_ms * max_retry_count;
 
 /**
  * Initializes a test by creating a source as well as a socket that simulates the sink,
@@ -25,7 +28,7 @@ const int buffered_frame_count = 60;
  *
  * Upon return, the source is in state ATOLLA_SOURCE_STATE_OPEN.
  */
-static void setup_test(AtollaSource *source, UdpSocket* sink_socket, MsgBuilder* builder)
+static void setup_waiting_source(AtollaSource *source, UdpSocket* sink_socket, MsgBuilder* builder)
 {
     const size_t test_ports_len = 12;
     // Use different ports so we do not have to wait for the operating system to make old
@@ -46,7 +49,8 @@ static void setup_test(AtollaSource *source, UdpSocket* sink_socket, MsgBuilder*
 
     MemBlock receive_block = mem_block_alloc(1024);
 
-    *source = atolla_source_make("127.0.0.1", port, frame_ms, buffered_frame_count);
+    AtollaSourceSpec spec = { "127.0.0.1", port, frame_ms, buffered_frame_count, retry_timeout_ms, disconnect_timeout_ms };
+    *source = atolla_source_make(&spec);
 
     AtollaSourceState source_state = atolla_source_state(*source);
     assert_int_equal(ATOLLA_SOURCE_STATE_WAITING, source_state);
@@ -64,16 +68,30 @@ static void setup_test(AtollaSource *source, UdpSocket* sink_socket, MsgBuilder*
     assert_int_equal(frame_ms, msg_iter_borrow_frame_length(&iter));
     assert_int_equal(buffered_frame_count, msg_iter_borrow_buffer_length(&iter));
 
+    mem_block_free(&receive_block);
+}
+
+static void setup_open_source(AtollaSource *source, UdpSocket* sink_socket, MsgBuilder* builder)
+{
+    setup_waiting_source(source, sink_socket, builder);
+
     // send back a lent and wait
     MemBlock* msg = msg_builder_lent(builder);
 
-    res = udp_socket_send(sink_socket, msg->data, msg->size);
+    UdpSocketResult res = udp_socket_send(sink_socket, msg->data, msg->size);
     assert_int_equal(res.code, UDP_SOCKET_OK);
     time_sleep(loopback_send_time_ms);
 
     // now, the connection should be open
-    source_state = atolla_source_state(*source);
+    AtollaSourceState source_state = atolla_source_state(*source);
     assert_int_equal(ATOLLA_SOURCE_STATE_OPEN, source_state);
+}
+
+static void teardown_source(AtollaSource *source, UdpSocket* sink_socket, MsgBuilder* builder)
+{
+    atolla_source_free(*source);
+    udp_socket_free(sink_socket);
+    msg_builder_free(builder);
 }
 
 static void test_error_transition(void **state)
@@ -82,7 +100,7 @@ static void test_error_transition(void **state)
     UdpSocket sink_socket;
     MsgBuilder builder;
 
-    setup_test(&source, &sink_socket, &builder);
+    setup_open_source(&source, &sink_socket, &builder);
 
     // let the sink communicate an unrecoverable error and wait
     MemBlock* msg = msg_builder_fail(&builder, 0, 42);
@@ -92,6 +110,8 @@ static void test_error_transition(void **state)
     // now, the source should be in error state
     AtollaSourceState source_state = atolla_source_state(source);
     assert_int_equal(ATOLLA_SOURCE_STATE_ERROR, source_state);
+
+    teardown_source(&source, &sink_socket, &builder);
 }
 
 /**
@@ -104,7 +124,7 @@ static void test_blocking(void **state)
     UdpSocket sink_socket;
     MsgBuilder builder;
 
-    setup_test(&source, &sink_socket, &builder);
+    setup_open_source(&source, &sink_socket, &builder);
 
     int start_time = time_now();
 
@@ -141,6 +161,9 @@ static void test_blocking(void **state)
 
     const int expected_duration = buffered_frame_count * frame_ms;
     assert_in_range(duration, expected_duration-tolerance, expected_duration+tolerance);
+
+    mem_block_free(&receive_block);
+    teardown_source(&source, &sink_socket, &builder);
 }
 
 static void test_frame_lag(void **state)
@@ -149,7 +172,7 @@ static void test_frame_lag(void **state)
     UdpSocket sink_socket;
     MsgBuilder builder;
 
-    setup_test(&source, &sink_socket, &builder);
+    setup_open_source(&source, &sink_socket, &builder);
 
     int lag = atolla_source_frame_lag(source);
 
@@ -175,6 +198,43 @@ static void test_frame_lag(void **state)
     time_sleep(wait_frame_count * frame_ms);
     lag = atolla_source_frame_lag(source);
     assert_int_equal(wait_frame_count, lag);
+
+    teardown_source(&source, &sink_socket, &builder);
+}
+
+/**
+ * Tests if the source correctly re-sends the borrow message after
+ * a packet loss in this step.
+ */
+static void test_borrow_packet_loss(void **state)
+{
+    AtollaSource source;
+    UdpSocket sink_socket;
+    MsgBuilder builder;
+
+    setup_waiting_source(&source, &sink_socket, &builder);
+
+    MemBlock receive_block = mem_block_alloc(1024);
+
+    UdpSocketResult res = udp_socket_receive(&sink_socket, receive_block.data, receive_block.capacity, &receive_block.size, false);
+    // setup_waiting_source already swallowed the first borrow message, now there should be no new packages
+    assert(res.code == UDP_SOCKET_ERR_NOTHING_RECEIVED);
+
+    // Waiting out the timeout first, and then checking the state to trigger re-sending of the borrow message
+    time_sleep(retry_timeout_ms);
+    atolla_source_state(source);
+
+    // Checking if the second borrow message was received and inspecting it after the loopback time
+    time_sleep(loopback_send_time_ms);
+    res = udp_socket_receive(&sink_socket, receive_block.data, receive_block.capacity, &receive_block.size, false);
+    assert(res.code == UDP_SOCKET_OK);
+
+    MsgIter iter = msg_iter_make(receive_block.data, receive_block.size);
+    assert(msg_iter_has_msg(&iter));
+    assert_int_equal(MSG_TYPE_BORROW, msg_iter_type(&iter));
+
+    mem_block_free(&receive_block);
+    teardown_source(&source, &sink_socket, &builder);
 }
 
 int main(void)
@@ -182,7 +242,8 @@ int main(void)
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(test_error_transition),
         cmocka_unit_test(test_blocking),
-        cmocka_unit_test(test_frame_lag)
+        cmocka_unit_test(test_frame_lag),
+        cmocka_unit_test(test_borrow_packet_loss)
     };
     return cmocka_run_group_tests(tests, NULL, NULL);
 }
