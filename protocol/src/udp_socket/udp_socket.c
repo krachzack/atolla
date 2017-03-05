@@ -388,7 +388,7 @@ UdpSocketResult udp_socket_receive(UdpSocket* socket, void* packet_data, size_t 
         typedef int socklen_t;
     #endif
 
-    struct sockaddr_in from;
+    struct sockaddr_storage from;
     socklen_t from_len = sizeof(from);
 
     ssize_t received_bytes = recvfrom(
@@ -432,11 +432,15 @@ UdpSocketResult udp_socket_receive(UdpSocket* socket, void* packet_data, size_t 
         // REVIEW should the sender address be made available to the caller instead of this thing?
         if(then_respond)
         {
-            connect(
+            assert(from.ss_family == AF_INET);
+
+            int ret = connect(
                 socket->socket_handle,
                 (const struct sockaddr*) &from,
                 from_len
             );
+
+            assert(ret == 0);
         }
 
         return make_success_result();

@@ -1,11 +1,12 @@
-#ifndef _udp_socket_h_
-#define _udp_socket_h_
-
 /**
  * Basic UDP socket functionality
  *
  * @see http://gafferongames.com/networking-for-game-programmers/sending-and-receiving-packets/
  */
+ 
+#ifndef _udp_socket_h_
+#define _udp_socket_h_
+
 #include <stdbool.h>
 
 /**
