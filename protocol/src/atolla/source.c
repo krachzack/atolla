@@ -9,6 +9,8 @@
 #include <stdlib.h>
 
 static const size_t recv_buf_len = 3 + 65537;
+static const int retry_timeout_ms_default = 10;
+static const int disconnect_timeout_ms_default = retry_timeout_ms_default * 10;
 
 struct AtollaSourcePrivate
 {
@@ -69,8 +71,8 @@ static AtollaSourcePrivate* source_private_make(const AtollaSourceSpec* spec)
     source->next_frame_idx = 0;
     source->frame_length_ms = spec->frame_duration_ms;
     source->max_buffered_frames = spec->max_buffered_frames;
-    source->retry_timeout_ms = spec->retry_timeout_ms;
-    source->disconnect_timeout_ms = spec->disconnect_timeout_ms;
+    source->retry_timeout_ms = (spec->retry_timeout_ms == 0) ? retry_timeout_ms_default : spec->retry_timeout_ms;
+    source->disconnect_timeout_ms = (spec->disconnect_timeout_ms == 0) ? disconnect_timeout_ms_default : spec->disconnect_timeout_ms;
 
     source->first_borrow_time = 0;
     source->last_borrow_time = 0;
