@@ -5,16 +5,36 @@
 
 enum AtollaSourceState
 {
-    // Channel is in a state of error that it cannot recover from
-    ATOLLA_SOURCE_STATE_ERROR,
-    // Channel is waiting for a response from the other end or the device was
-    // relent
+    /**
+     * The source has sent a message to the sink that communicates the desire
+     * of the source to stream light information to the sink, which should
+     * then be displayed. While in this state, the source waits for the
+     * first response of the sink, ensuring that the sink exists and is
+     * functioning.
+     */
     ATOLLA_SOURCE_STATE_WAITING,
-    // Communcation is ongoing
-    ATOLLA_SOURCE_STATE_OPEN
+    /**
+     * The sink is lent to the source and light information can be streamed with
+     * atolla_source_put.
+     */
+    ATOLLA_SOURCE_STATE_OPEN,
+    /**
+     * Channel is in a state of error that it cannot recover from.
+     * Possible reasons for this are:
+     *
+     * - The sink did not respond when trying to establish a connection,
+     * - the connection was lost later,
+     * - the sink has been lent to another source,
+     * - the sink has communicated an unrecoverable error.
+     */
+    ATOLLA_SOURCE_STATE_ERROR
 };
 typedef enum AtollaSourceState AtollaSourceState;
 
+/**
+ * Represents the source of streaming light information that is connected
+ * to a sink.
+ */
 struct AtollaSource
 {
     void* private;
@@ -25,8 +45,8 @@ AtollaSource atolla_source_make(const char* sink_hostname, int sink_port, int fr
 
 /**
  * Orderly shuts down the source first and then frees associated resources.
- * The source referenced by the given source handle may not be used after calling
- * this function.
+ * The source referenced by the given source handle may not be used again
+ * after calling this function.
  */
 void atolla_source_free(AtollaSource source);
 

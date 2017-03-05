@@ -128,14 +128,15 @@ static void source_send_borrow(AtollaSourcePrivate* source)
 }
 
 static void source_update(AtollaSourcePrivate* source)
-{   
+{
     size_t received_len;
     UdpSocketResult result;
 
     result = udp_socket_receive(
         &source->sock,
         source->recv_buf, recv_buf_len,
-        &received_len
+        &received_len,
+        false
     );
 
     if(result.code == UDP_SOCKET_OK)
@@ -173,5 +174,7 @@ static void iterate_recv_buf(AtollaSourcePrivate* source, size_t received_bytes)
                 break;
             }
         }
+        
+        msg_iter_next(&iter);
     }
 }
