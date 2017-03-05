@@ -41,7 +41,31 @@ struct AtollaSource
 };
 typedef struct AtollaSource AtollaSource;
 
-AtollaSource atolla_source_make(const char* sink_hostname, int sink_port, int frame_length_ms, int max_buffered_frames);
+struct AtollaSourceSpec
+{
+    const char* sink_hostname;
+    int sink_port;
+    int frame_duration_ms;
+    int max_buffered_frames;
+    /**
+     * Holds the time in milliseconds after which a new borrow message is
+     * sent in reaction to a suspected packet loss.
+     *
+     * A value of zero lets the implementation pick a default value.
+     */
+    int retry_timeout_ms;
+    /**
+     * Holds the time in milliseconds after which no further attempts are
+     * made to contact the sink. If the sink is unresponsive for this amount
+     * of milliseconds, the source enters the error state.
+     *
+     * A value of zero lets the implementation pick a default value.
+     */
+    int disconnect_timeout_ms;
+};
+typedef struct AtollaSourceSpec AtollaSourceSpec;
+
+AtollaSource atolla_source_make(const AtollaSourceSpec* spec);
 
 /**
  * Orderly shuts down the source first and then frees associated resources.

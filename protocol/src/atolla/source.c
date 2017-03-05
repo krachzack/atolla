@@ -30,9 +30,11 @@ static void source_send_borrow(AtollaSourcePrivate* source);
 static void source_update(AtollaSourcePrivate* source);
 static void iterate_recv_buf(AtollaSourcePrivate* sink, size_t received_bytes);
 
-AtollaSource atolla_source_make(const char* sink_hostname, int sink_port, int frame_length_ms, int max_buffered_frames)
+AtollaSource atolla_source_make(const AtollaSourceSpec* spec)
 {
-    AtollaSourcePrivate* source = source_private_make(frame_length_ms, max_buffered_frames);
+    assert(spec->sink_port >= 0 && spec->sink_port < 65536);
+
+    AtollaSourcePrivate* source = source_private_make(spec->frame_duration_ms, spec->max_buffered_frames);
 
     msg_builder_init(&source->builder);
 
@@ -41,7 +43,7 @@ AtollaSource atolla_source_make(const char* sink_hostname, int sink_port, int fr
     result = udp_socket_init(&source->sock);
     assert(result.code == UDP_SOCKET_OK);
 
-    result = udp_socket_set_receiver(&source->sock, sink_hostname, (unsigned short) sink_port);
+    result = udp_socket_set_receiver(&source->sock, spec->sink_hostname, (unsigned short) spec->sink_port);
     assert(result.code == UDP_SOCKET_OK);
 
     source_send_borrow(source);
