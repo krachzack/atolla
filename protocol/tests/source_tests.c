@@ -143,11 +143,46 @@ static void test_blocking(void **state)
     assert_in_range(duration, expected_duration-tolerance, expected_duration+tolerance);
 }
 
+static void test_frame_lag(void **state)
+{
+    AtollaSource source;
+    UdpSocket sink_socket;
+    MsgBuilder builder;
+
+    setup_test(&source, &sink_socket, &builder);
+
+    int lag = atolla_source_frame_lag(source);
+
+    // After initialization, the remote buffer is empty
+    // Hence, the source lags behind the maximum amount of buffered frames
+    assert_int_equal(buffered_frame_count, lag);
+
+    // Completely fill the remote buffer
+    const size_t frame_len = 3;
+    uint8_t frame[frame_len] = { 200, 201, 202 };
+    for(int i = 0; i < buffered_frame_count; ++i)
+    {
+        atolla_source_put(source, frame, frame_len);
+    }
+
+    // After completely filling the buffer, the lag should be zero
+    lag = atolla_source_frame_lag(source);
+    assert_int_equal(0, lag);
+
+    // When waiting for an amount of frames, the lag should grow
+    // appropriately
+    const int wait_frame_count = 10;
+    time_sleep(wait_frame_count * frame_ms);
+    lag = atolla_source_frame_lag(source);
+    assert_int_equal(wait_frame_count, lag);
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(test_error_transition),
-        cmocka_unit_test(test_blocking)
+        cmocka_unit_test(test_blocking),
+        cmocka_unit_test(test_frame_lag)
     };
     return cmocka_run_group_tests(tests, NULL, NULL);
 }
