@@ -22,7 +22,7 @@ struct AtollaSinkPrivate
     MemBlock recv_buf;
     MemBlock frame_buf;
 
-    int first_enqueue_time;
+    int first_get_time;
 };
 typedef struct AtollaSinkPrivate AtollaSinkPrivate;
 
@@ -108,10 +108,13 @@ bool atolla_sink_get(AtollaSink sink_handle, void* frame, size_t frame_len)
 
         const size_t frame_buf_frame_count = sink->frame_buf.size / frame_size;
 
-        // FIXME rather than lent time, the reference should be the first enqueued frame
+        if(sink->first_get_time == -1)
+        {
+            sink->first_get_time = time_now();
+        }
 
-        size_t frame_idx = ((time_now() - sink->first_enqueue_time) / sink->frame_duration_ms) % frame_buf_frame_count;
-        
+        size_t frame_idx = ((time_now() - sink->first_get_time) / sink->frame_duration_ms) % frame_buf_frame_count;
+
         void* frame_buf_frame = ((uint8_t*) sink->frame_buf.data) + (frame_idx * frame_size);
 
         memcpy(frame, frame_buf_frame, frame_size);
@@ -199,7 +202,7 @@ static void sink_send_lent(AtollaSinkPrivate* sink)
 {
     MemBlock* lent_msg = msg_builder_lent(&sink->builder);
     udp_socket_send(&sink->socket, lent_msg->data, lent_msg->size);
-    sink->first_enqueue_time = -1;
+    sink->first_get_time = -1;
 }
 
 static void sink_handle_enqueue(AtollaSinkPrivate* sink, size_t frame_idx, MemBlock frame)
@@ -225,10 +228,5 @@ static void sink_handle_enqueue(AtollaSinkPrivate* sink, size_t frame_idx, MemBl
         frame_buf_bytes[offset + 0] = frame_input_bytes[(offset + 0) % frame.size];
         frame_buf_bytes[offset + 1] = frame_input_bytes[(offset + 1) % frame.size];
         frame_buf_bytes[offset + 2] = frame_input_bytes[(offset + 2) % frame.size];
-    }
-
-    if(sink->first_enqueue_time == -1)
-    {
-        sink->first_enqueue_time = time_now();
     }
 }
