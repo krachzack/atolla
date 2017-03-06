@@ -15,12 +15,12 @@
  * A time in milliseconds to wait in order to wait for data to be sent through local
  * loopback and arrive at the other local end.
  */
-const int loopback_send_time_ms = 5;
-const int frame_ms = 17;
-const int buffered_frame_count = 60;
-const int retry_timeout_ms = loopback_send_time_ms * 3;
-const int max_retry_count = 5;
-const int disconnect_timeout_ms = retry_timeout_ms * max_retry_count;
+static const int loopback_send_time_ms = 5;
+static const int frame_ms = 17;
+static const int buffered_frame_count = 60;
+static const int retry_timeout_ms = loopback_send_time_ms * 3;
+static const int max_retry_count = 5;
+static const int disconnect_timeout_ms = retry_timeout_ms * max_retry_count;
 
 /**
  * Initializes a test by creating a source as well as a socket that simulates the sink,

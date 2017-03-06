@@ -20,13 +20,18 @@ struct AtollaSink
 };
 typedef struct AtollaSink AtollaSink;
 
-AtollaSink atolla_sink_make(int udp_port, int lights_count);
+struct AtollaSinkSpec
+{
+    int port;
+    int lights_count;
+};
+typedef struct AtollaSinkSpec AtollaSinkSpec;
+
+AtollaSink atolla_sink_make(const AtollaSinkSpec* spec);
 
 void atolla_sink_free(AtollaSink sink);
 
 AtollaSinkState atolla_sink_state(AtollaSink sink);
-
-void atolla_sink_update(AtollaSink sink);
 
 bool atolla_sink_get(AtollaSink sink, void* frame, size_t frame_len);
 

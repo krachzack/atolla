@@ -2,7 +2,7 @@
 #include "msg/builder.h"
 #include "msg/iter.h"
 #include "udp_socket/udp_socket.h"
-
+#include "time/now.h"
 #include "test/assert.h"
 
 #include <stdlib.h>
@@ -10,45 +10,37 @@
 
 struct AtollaSinkPrivate
 {
-    void* recv_buf;
-    size_t recv_buf_len;
+    AtollaSinkState state;
+
     UdpSocket socket;
 
-    AtollaSinkState state;
     int lights_count;
-    int socket_handle; // Contains socket ID to hide UdpSocket type
     int frame_duration_ms;
-    void* frame_buf;
-    size_t frame_buf_len;
 
     MsgBuilder builder;
+
+    MemBlock recv_buf;
+    MemBlock frame_buf;
+
+    int first_enqueue_time;
 };
 typedef struct AtollaSinkPrivate AtollaSinkPrivate;
 
 static const size_t recv_buf_len = 3 + 65537;
 
-static void iterate_recv_buf(AtollaSinkPrivate* sink, size_t received_bytes);
-static void handle_borrow(AtollaSinkPrivate* sink, int frame_length_ms, size_t buffer_length);
-static void handle_enqueue(AtollaSinkPrivate* sink, size_t frame_idx, MemBlock frame);
-static void send_lent(AtollaSinkPrivate* sink);
+static AtollaSinkPrivate* sink_private_make(const AtollaSinkSpec* spec); 
+static void sink_iterate_recv_buf(AtollaSinkPrivate* sink);
+static void sink_handle_borrow(AtollaSinkPrivate* sink, int frame_length_ms, size_t buffer_length);
+static void sink_handle_enqueue(AtollaSinkPrivate* sink, size_t frame_idx, MemBlock frame);
+static void sink_send_lent(AtollaSinkPrivate* sink);
+static void sink_update(AtollaSinkPrivate* sink);
 
-AtollaSink atolla_sink_make(int udp_port, int lights_count)
+AtollaSink atolla_sink_make(const AtollaSinkSpec* spec)
 {
-    AtollaSinkPrivate* sink = (AtollaSinkPrivate*) malloc(sizeof(AtollaSinkPrivate));
+    AtollaSinkPrivate* sink = sink_private_make(spec);
     
-    UdpSocket socket;
-    UdpSocketResult result = udp_socket_init_on_port(&socket, (unsigned short) udp_port);
+    UdpSocketResult result = udp_socket_init_on_port(&sink->socket, (unsigned short) spec->port);
     assert(result.code == UDP_SOCKET_OK);
-
-    sink->state = ATOLLA_SINK_STATE_OPEN;
-    sink->lights_count = lights_count;
-    sink->socket_handle = socket.socket_handle;
-    sink->recv_buf = malloc(recv_buf_len);
-    sink->frame_buf = NULL;
-    sink->frame_buf_len = 0;
-
-    assert(sink->lights_count >= 1);
-    assert(sink->recv_buf);
 
     msg_builder_init(&sink->builder);
 
@@ -56,36 +48,71 @@ AtollaSink atolla_sink_make(int udp_port, int lights_count)
     return sink_handle;
 }
 
-void atolla_sink_free(AtollaSink sink)
+static AtollaSinkPrivate* sink_private_make(const AtollaSinkSpec* spec)
 {
-    AtollaSinkPrivate* private = (AtollaSinkPrivate*) sink.private;
+    assert(spec->port >= 0 && spec->port < 65536);
+    assert(spec->lights_count >= 1);
 
-    UdpSocketResult result = udp_socket_free(&private->socket);
+    AtollaSinkPrivate* sink = (AtollaSinkPrivate*) malloc(sizeof(AtollaSinkPrivate));
+    assert(sink);
+
+    // Initialize everything to zero
+    memset(sink, 0, sizeof(AtollaSinkPrivate));
+
+    // Except these fields, which are pre-filled
+    sink->state = ATOLLA_SINK_STATE_OPEN;
+    sink->lights_count = spec->lights_count;
+    sink->recv_buf = mem_block_alloc(recv_buf_len);
+
+    return sink;
+}
+
+void atolla_sink_free(AtollaSink sink_handle)
+{
+    AtollaSinkPrivate* sink = (AtollaSinkPrivate*) sink_handle.private;
+
+    UdpSocketResult result = udp_socket_free(&sink->socket);
     assert(result.code == UDP_SOCKET_OK);
 
-    free(private);
+    mem_block_free(&sink->recv_buf);
+
+    if(sink->frame_buf.data != NULL)
+    {
+        mem_block_free(&sink->frame_buf);
+    }
+
+    free(sink);
 }
 
-AtollaSinkState atolla_sink_state(AtollaSink sink)
+AtollaSinkState atolla_sink_state(AtollaSink sink_handle)
 {
-    AtollaSinkPrivate* private = (AtollaSinkPrivate*) sink.private;
-    return private->state;
+    AtollaSinkPrivate* sink = (AtollaSinkPrivate*) sink_handle.private;
+
+    sink_update(sink);
+
+    return sink->state;
 }
 
-bool atolla_sink_get(AtollaSink sink, void* frame, size_t frame_len)
+bool atolla_sink_get(AtollaSink sink_handle, void* frame, size_t frame_len)
 {
-    AtollaSinkPrivate* private = (AtollaSinkPrivate*) sink.private;
-    bool lent = private->state == ATOLLA_SINK_STATE_LENT;
+    AtollaSinkPrivate* sink = (AtollaSinkPrivate*) sink_handle.private;
+
+    sink_update(sink);
+
+    bool lent = sink->state == ATOLLA_SINK_STATE_LENT;
 
     if(lent)
     {
-        const size_t frame_size = private->lights_count * 3;
+        const size_t frame_size = sink->lights_count * 3;
         assert(frame_len >= frame_size);
 
-        // FIXME this should be determined by time, not fixed at 0
-        size_t frame_idx = 0;
+        const size_t frame_buf_frame_count = sink->frame_buf.size / frame_size;
+
+        // FIXME rather than lent time, the reference should be the first enqueued frame
+
+        size_t frame_idx = ((time_now() - sink->first_enqueue_time) / sink->frame_duration_ms) % frame_buf_frame_count;
         
-        void* frame_buf_frame = ((uint8_t*) private->frame_buf) + (frame_idx * frame_size);
+        void* frame_buf_frame = ((uint8_t*) sink->frame_buf.data) + (frame_idx * frame_size);
 
         memcpy(frame, frame_buf_frame, frame_size);
     }
@@ -93,31 +120,28 @@ bool atolla_sink_get(AtollaSink sink, void* frame, size_t frame_len)
     return lent;
 }
 
-void atolla_sink_update(AtollaSink sink_handle)
+static void sink_update(AtollaSinkPrivate* sink)
 {
-    AtollaSinkPrivate* private = (AtollaSinkPrivate*) sink_handle.private;
-    
-    UdpSocket sock = { private->socket_handle };
-    size_t received_len;
     UdpSocketResult result;
 
     result = udp_socket_receive(
-        &sock,
-        private->recv_buf, recv_buf_len,
-        &received_len,
+        &sink->socket,
+        sink->recv_buf.data, sink->recv_buf.capacity,
+        &sink->recv_buf.size,
         true
     );
 
     if(result.code == UDP_SOCKET_OK)
     {
-        iterate_recv_buf(private, received_len);
+        sink_iterate_recv_buf(sink);
     }
 }
 
-static void iterate_recv_buf(AtollaSinkPrivate* private, size_t received_len)
+static void sink_iterate_recv_buf(AtollaSinkPrivate* sink)
 {
-    MsgIter iter = msg_iter_make(private->recv_buf, received_len);
-    while(msg_iter_has_msg(&iter))
+    MsgIter iter = msg_iter_make(sink->recv_buf.data, sink->recv_buf.size);
+
+    for(; msg_iter_has_msg(&iter); msg_iter_next(&iter))
     {
         MsgType type = msg_iter_type(&iter);
 
@@ -127,7 +151,7 @@ static void iterate_recv_buf(AtollaSinkPrivate* private, size_t received_len)
             {
                 uint8_t frame_len = msg_iter_borrow_frame_length(&iter);
                 uint8_t buffer_len = msg_iter_borrow_buffer_length(&iter);
-                handle_borrow(private, frame_len, buffer_len);
+                sink_handle_borrow(sink, frame_len, buffer_len);
                 break;
             }
 
@@ -135,7 +159,7 @@ static void iterate_recv_buf(AtollaSinkPrivate* private, size_t received_len)
             {
                 uint8_t frame_idx = msg_iter_enqueue_frame_idx(&iter);
                 MemBlock frame = msg_iter_enqueue_frame(&iter);
-                handle_enqueue(private, frame_idx, frame);
+                sink_handle_enqueue(sink, frame_idx, frame);
                 break;
             }
 
@@ -148,40 +172,46 @@ static void iterate_recv_buf(AtollaSinkPrivate* private, size_t received_len)
     }
 }
 
-static void handle_borrow(AtollaSinkPrivate* sink, int frame_length_ms, size_t buffer_length)
+static void sink_handle_borrow(AtollaSinkPrivate* sink, int frame_length_ms, size_t buffer_length)
 {
     assert(buffer_length >= 0);
     assert(frame_length_ms >= 0);
 
-    if(sink->frame_buf)
+    if(sink->frame_buf.data)
     {
-        free(sink->frame_buf);
+        mem_block_free(&sink->frame_buf);
     }
 
-    sink->frame_buf_len = buffer_length * (sink->lights_count * 3);
-    sink->frame_buf = malloc(sink->frame_buf_len);
+    // Create the frame buffer and initialize it to zero
+    // Consider it full by setting size to capacity
+    size_t required_frame_buf_size = buffer_length * (sink->lights_count * 3);
+    sink->frame_buf = mem_block_alloc(required_frame_buf_size);
+    memset(sink->frame_buf.data, 0, sink->frame_buf.capacity);
+    sink->frame_buf.size = sink->frame_buf.capacity; 
+
     sink->frame_duration_ms = frame_length_ms;
     sink->state = ATOLLA_SINK_STATE_LENT;
 
-    send_lent(sink);
+    sink_send_lent(sink);
 }
 
-static void send_lent(AtollaSinkPrivate* sink)
+static void sink_send_lent(AtollaSinkPrivate* sink)
 {
     MemBlock* lent_msg = msg_builder_lent(&sink->builder);
     udp_socket_send(&sink->socket, lent_msg->data, lent_msg->size);
+    sink->first_enqueue_time = -1;
 }
 
-static void handle_enqueue(AtollaSinkPrivate* sink, size_t frame_idx, MemBlock frame)
+static void sink_handle_enqueue(AtollaSinkPrivate* sink, size_t frame_idx, MemBlock frame)
 {
     const size_t frame_size = sink->lights_count * 3;
-    const size_t frame_buf_frame_count = sink->frame_buf_len / frame_size;
+
+    const size_t frame_buf_frame_count = sink->frame_buf.size / frame_size;
     assert(frame_idx >= 0 && frame_idx < frame_buf_frame_count);
     assert(frame.size >= 3);
 
-    MemBlock frame_buf = mem_block_make(sink->frame_buf, sink->frame_buf_len);
     MemBlock frame_buf_indexed_frame = mem_block_slice(
-        &frame_buf,
+        &sink->frame_buf,
         frame_idx * frame_size,
         frame_size
     );
@@ -195,5 +225,10 @@ static void handle_enqueue(AtollaSinkPrivate* sink, size_t frame_idx, MemBlock f
         frame_buf_bytes[offset + 0] = frame_input_bytes[(offset + 0) % frame.size];
         frame_buf_bytes[offset + 1] = frame_input_bytes[(offset + 1) % frame.size];
         frame_buf_bytes[offset + 2] = frame_input_bytes[(offset + 2) % frame.size];
+    }
+
+    if(sink->first_enqueue_time == -1)
+    {
+        sink->first_enqueue_time = time_now();
     }
 }
