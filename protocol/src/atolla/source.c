@@ -164,7 +164,7 @@ bool atolla_source_put(AtollaSource source_handle, void* frame, size_t frame_len
 
     udp_socket_send(&source->sock, enqueue_msg->data, enqueue_msg->size);
 
-    ++source->next_frame_idx;
+    source->next_frame_idx = (source->next_frame_idx + 1) % source->max_buffered_frames;
 
     if(source->last_frame_time == -1)
     {
