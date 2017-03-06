@@ -48,7 +48,7 @@ static void setup_lent_sink(AtollaSink* sink, UdpSocket* source_sock, MsgBuilder
 }
 
 /**
- * Tests if sending enqueue messages really mutates the sink frame buffer.
+ * Tests by sending enqueue messages and then dequeuing them.
  */
 static void test_fill_sink_buf(void **state)
 {
@@ -61,7 +61,9 @@ static void test_fill_sink_buf(void **state)
     const size_t frame_len = 3;
     uint8_t frame[frame_len] = { 0, 0, 0 };
 
-    const int before_enqueue = time_now();
+    // first, make the buffer more than half full, so the 
+
+
     for(int i = 0; i < buffered_frame_count; ++i)
     {
         frame[0] = (uint8_t) i;
@@ -73,12 +75,13 @@ static void test_fill_sink_buf(void **state)
         assert_int_equal(UDP_SOCKET_OK, res.code);
 
         time_sleep(1);
-        atolla_sink_state(sink); // this just makes sure the sink gets updates
+        atolla_sink_state(sink); // this just makes sure the sink gets the updates
     }
 
+    const int origin_time = time_now();
     for(int i = 0; i < buffered_frame_count/2; ++i)
     {
-        const int frames_passed = (time_now() - before_enqueue) / frame_length;
+        const int frames_passed = (time_now() - origin_time) / frame_length;
         const int tolerance = 1;
         const int expected_color_min = (frames_passed == 0) ? 0 : (frames_passed - tolerance);
         const int expected_color_max = frames_passed + tolerance;
