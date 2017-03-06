@@ -92,10 +92,9 @@ include_directories(include src ${CMAKE_CURRENT_BINARY_DIR}/include ${CMOCKA_INC
 set(
     LIBRARY_HEADERS
     ${CMAKE_CURRENT_BINARY_DIR}/include/atolla/config.h
-    include/atolla/client.h
     include/atolla/primitives.h
-    include/atolla/sleep_ms.h
-    src/atolla/client_error_messages.h
+    include/atolla/sink.h
+    include/atolla/source.h
     src/atolla/definitions.h
     src/mem/block.h
     src/mem/uint16le.h
@@ -106,13 +105,20 @@ set(
     src/udp_socket/udp_socket_messages.h
     src/udp_socket/udp_socket.h
     src/test/assert.h
+    src/time/gettime.h
+    src/time/mach_gettime.h
+    src/time/now.h
+    src/time/sleep.h
 )
 set(LIBRARY_IMPLS
-    src/atolla/client.c
+    src/atolla/sink.c
+    src/atolla/source.c
     src/mem/block.c
     src/msg/builder.c
     src/msg/iter.c
     src/udp_socket/udp_socket.c
+    src/time/mach_gettime.c
+    src/time/now.c
 )
 set(LIBRARY_SRC ${LIBRARY_HEADERS} ${LIBRARY_IMPLS})
 
@@ -128,10 +134,17 @@ add_executable(example_yellow examples/01-yellow.c)
 add_executable(example_sine   examples/02-sine.c)
 
 target_link_libraries(example_yellow atolla)
-target_link_libraries(example_sine atolla)
+add_custom_target(run_example_yellow DEPENDS example_yellow COMMAND ../build/example_yellow)
 
-add_cmocka_test(atolla_client_tests tests/atolla_client_tests.c ${LIBRARY_SRC})
-add_cmocka_test(mem_block_tests tests/mem_block_tests.c ${LIBRARY_SRC})
-add_cmocka_test(udp_socket_tests tests/udp_socket_tests.c ${LIBRARY_SRC})
+target_link_libraries(example_sine atolla)
+add_custom_target(run_example_sine DEPENDS example_sine COMMAND ../build/example_sine)
+
+add_cmocka_test(mem_block_tests   tests/mem_block_tests.c   ${LIBRARY_SRC})
 add_cmocka_test(msg_builder_tests tests/msg_builder_tests.c ${LIBRARY_SRC})
-add_cmocka_test(msg_iter_tests tests/msg_iter_tests.c ${LIBRARY_SRC})
+add_cmocka_test(msg_iter_tests    tests/msg_iter_tests.c    ${LIBRARY_SRC})
+add_cmocka_test(sink_tests        tests/sink_tests.c        ${LIBRARY_SRC})
+add_cmocka_test(source_tests      tests/source_tests.c      ${LIBRARY_SRC})
+add_cmocka_test(time_tests        tests/time_tests.c        ${LIBRARY_SRC})
+add_cmocka_test(udp_socket_tests  tests/udp_socket_tests.c  ${LIBRARY_SRC})
+
+add_custom_target(test_all DEPENDS mem_block_tests msg_builder_tests msg_iter_tests sink_tests source_tests time_tests udp_socket_tests COMMAND ../test)

@@ -82,10 +82,18 @@ uint8_t msg_iter_borrow_buffer_length(MsgIter* iter)
     return ((uint8_t*) payload.data)[1];
 }
 
+uint8_t msg_iter_enqueue_frame_idx(MsgIter* iter)
+{
+    assert(msg_iter_type(iter) == MSG_TYPE_ENQUEUE);
+    MemBlock payload = msg_iter_payload(iter);
+    return ((uint8_t*) payload.data)[0];
+}
+
 MemBlock msg_iter_enqueue_frame(MsgIter* iter)
 {
     assert(msg_iter_type(iter) == MSG_TYPE_ENQUEUE);
-    return msg_iter_payload(iter);
+    MemBlock payload = msg_iter_payload(iter);
+    return mem_block_slice(&payload, 3, payload.size-3);
 }
 
 uint16_t msg_iter_fail_offending_msg_id(MsgIter* iter)

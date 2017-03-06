@@ -203,3 +203,10 @@ void atolla_client_flush(
 {
     assert(false);
 }
+
+void atolla_client_free(
+    AtollaClient* client
+)
+{
+    assert(false);
+}

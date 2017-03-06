@@ -1,0 +1,49 @@
+#!/bin/bash
+
+# Change working directory to script directory:
+# See: http://stackoverflow.com/a/3355423/1105621
+WORKING_DIR="$(dirname "$0")/build"
+cd $WORKING_DIR
+
+TESTS=$(ls *_tests)
+FAILED_TESTS=""
+
+echo ""
+
+for TEST in $TESTS
+do
+    TEST_OUTPUT=$(./$TEST 2>&1)
+    
+    if [ $? -eq 0 ]
+    then
+        echo " ✅  $TEST => All good  ✅ "
+    else
+        echo " ❌  $TEST => Something went wrong ❌ "
+        FAILED_TESTS="$FAILED_TESTS $TEST"
+    fi
+done
+
+echo ""
+echo ""
+
+if [ -z $FAILED_TESTS ]
+then
+    echo " 🌈  All tests successful 🌈 "
+    echo ""
+else
+    echo " ❌ ❌ ❌  Some tests failed:$FAILED_TESTS ❌ ❌ ❌ "
+    echo ""
+
+    for TEST in $FAILED_TESTS
+    do
+        echo "❌    $TEST"":  Running previously failed test again and showing output"
+        echo "==================================================================================="
+        echo ""
+
+        eval ./$TEST
+    done
+
+    echo ""
+
+    exit 1
+fi

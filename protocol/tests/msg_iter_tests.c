@@ -14,7 +14,9 @@ static uint8_t borrow_and_enqueue_msg_buf[] = {
 
   2,   // message type 2 = enqueue
   1, 0, // order number is 1
-  6, 0, // payload length is 6
+  9, 0, // payload length is 9
+  42, // frame index is 42
+  6, 0, // frame length is 6
   255, 0, 0,  // red
   0, 0, 255  // blue
 };
@@ -32,7 +34,9 @@ static uint8_t all_types_msg_buf[] = {
 
     2,   // message type 2 = enqueue
     2, 0, // order number is 2
-    6, 0, // payload length is 6
+    9, 0, // payload length is 9
+    42, // frame index is 42
+    6, 0, // frame length is 6
     255, 0, 0,  // red
     0, 0, 255,  // blue
 
@@ -145,6 +149,9 @@ static void test_msg_iter_enqueue_frame(void **state)
     );
 
     msg_iter_next(&iter);
+
+    size_t frame_idx = msg_iter_enqueue_frame_idx(&iter);
+    assert_int_equal(frame_idx, 42);
 
     MemBlock frame = msg_iter_enqueue_frame(&iter);
     assert_int_equal(frame.size, frame.capacity);

@@ -139,4 +139,11 @@ void atolla_client_flush(
     AtollaClient* client
 );
 
+void atolla_client_free(
+    AtollaClient* client
+)
+{
+    assert(false);
+}
+
 #endif // ATOLLA_CLIENT_H
