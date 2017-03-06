@@ -1,4 +1,5 @@
-/*#include <atolla/client.h>
+#include <atolla/sink.h>
+#include <atolla/source.h>
 #include "atolla/config.h"
 
 #if defined(HAVE_POSIX_SLEEP)
@@ -10,112 +11,108 @@
 #else
     #error "No sleep function available"
 #endif
-#include <stdint.h>
-#include <unistd.h>
+
+#include <unistd.h> // for fork
 #include <stdio.h>
-#include <stdlib.h>
 #include <math.h>
 
-const char* ATOLLA_CLIENT_HOSTNAME = "atolla.local";
+const int port = 4242;
+const int frame_length_ms = 17;
+const int max_buffered_frames = 50;
+const int simulation_length = 20; // amount of buffers to simulate
 
-AtollaClient* borrow();
-bool check_connection(AtollaClient** client);
-void show_sine(AtollaClient* client);*/
+static void run_sink();
+static void run_source();
 
 int main(int argc, char* argv[])
 {
-    /*AtollaClient* client = borrow();
+    pid_t pid = fork();
 
-    while(client && check_connection(&client)) {
-        show_sine(client);
-        sleep_ms(17);
-    }
-
-    atolla_client_free(client);*/
-}
-
-
-/*AtollaClient* borrow()
-{
-    AtollaClientBorrow borrow = atolla_client_borrow(
-        17, // frame length in ms, equivavalent to ~60 frames per second
-        30, // buffer thirty frames into the future for lag compensation
-        ATOLLA_CLIENT_HOSTNAME, // hostname or IP of the device to connect to
-        50123, // port of remote client
-        500, // timeout in milliseconds
-        5    // maximum connection attempts before giving up
-    );
-
-    // Blocks until client connected or connection failed,
-    // e.g. can fail because timed out
-    // Use atolla_client_borrow_is_determinate to check for completion in a
-    // non-blocking way
-    if(atolla_client_borrow_failed(&res))
+    if (pid == 0)
     {
-        AtollaClientBorrowResultCode code = atolla_client_borrow_result_code(&borrow);
-        const char* code_str = atolla_client_borrow_result_code_str(&borrow);
-        const char* err_msg  = atolla_client_borrow_result_error_msg(&borrow);
-        printf("Client borrow failed: %s\n%s\n", code_str, msg);
-        return NULL;
+        // child process
+        run_source();
+    }
+    else if (pid > 0)
+    {
+        // parent process
+        run_sink();
     }
     else
     {
-        return atolla_client_borrow_obtain(&borrow);
+        // fork failed
+        printf("fork() failed!\n");
+        return 1;
     }
 }
 
-
-bool check_connection(AtollaClient** client)
+static void run_sink()
 {
-    bool connected = true;
-    AtollaClientState state = atolla_client_state(*client);
+    printf("Starting atolla sink\n");
+    const size_t lights_count = 1;
 
-    if(state != ATOLLA_CLIENT_STATE_OK)
+    AtollaSinkSpec spec;
+    spec.port = port;
+    spec.lights_count = lights_count;
+
+    AtollaSink sink = atolla_sink_make(&spec);
+
+    while(atolla_sink_state(sink) != ATOLLA_SINK_STATE_LENT)
     {
-        // The device either did not send messages back for some time or it has
-        // been borrowed by someone else
-        if(state == ATOLLA_CLIENT_STATE_UNRESPONSIVE)
+        sleep_ms(1);
+    }
+    printf("Sink received borrow\n");
+
+    for(int i = 0; i < max_buffered_frames * simulation_length; ++i)
+    {
+        uint8_t frame[lights_count*3] = { 1, 2, 3 };
+        
+        bool has_frame = atolla_sink_get(sink, frame, sizeof(frame) / sizeof(uint8_t));
+        
+        if(has_frame)
         {
-            printf("The device did not phone home in a while, trying to reconnect...\n");
-            atolla_client_free(*client);
-            *client = borrow();
-            connected = *client != NULL;
-        }
-        else if(state == ATOLLA_CLIENT_STATE_RELENT)
-        {
-            printf("The device has been lent to another client, exiting...\n")
-            connected = false;
-        }
-        else
-        {
-            printf(
-                "Device has error state: %s\n",
-                atolla_client_state_str(*client);
-            );
-            connected = false;
+            int red = frame[0];
+            int green = frame[1];
+            int blue = frame[2];
+            
+            printf("(%d/%d/%d)\n", red, green, blue);
+            sleep_ms(frame_length_ms);
         }
     }
-
-    return connected;
 }
 
-void show_sine(AtollaClient* client)
+static void run_source()
 {
-    // alternatively use atolla_client_next_frame_delta to see how much time
-    // into the future the next frame is instead of getting an absolute time
-    // for the frame
-    for(long next_frame_time = atolla_client_next_frame_time(client);
-        next_frame_time != -1;
-        next_frame_time = atolla_client_next_frame_time(client))
+    AtollaSourceSpec spec;
+    spec.sink_hostname = "127.0.0.1";
+    spec.sink_port = port;
+    spec.frame_duration_ms = frame_length_ms;
+    spec.max_buffered_frames = max_buffered_frames;
+    spec.retry_timeout_ms = 0; // 0 means pick a default value
+    spec.disconnect_timeout_ms = 0; // 0 means pick a default value
+
+    printf("Starting atolla source\n");
+
+    AtollaSource source = atolla_source_make(&spec);
+
+    while(atolla_source_state(source) != ATOLLA_SOURCE_STATE_OPEN)
     {
-        double next_frame_time_secs = atolla_client_next_frame_time / 1000.0;
-        double sine_normalized = (sin(next_frame_time_secs) + 1.0) / 2.0;
-        uint8_t sine_int = sine_normalized * 255;
-        uint8_t frame[] = { sine_int, sine_int, sine_int };
-        size_t frame_length = sizeof(frame) / sizeof(uint8_t);
-
-        atolla_client_enqueue(client, frame, frame_length);
+        sleep_ms(1);
     }
+    printf("Atolla source received lent\n");
 
-    atolla_client_flush(client);
-}*/
+    static double t = 0.0;
+    uint8_t frame[] = { 1, 2, 3 };
+
+    for(int i = 0; i < max_buffered_frames * simulation_length; ++i)
+    {
+        t += frame_length_ms / 1000.0;
+        double poscos = (cos(t) + 1.0) / 2.0;
+        uint8_t col = (uint8_t) (poscos * 255.0);
+        frame[0] = col;
+        frame[1] = col;
+        frame[2] = col;
+
+        atolla_source_put(source, frame, sizeof(frame) / sizeof(uint8_t));
+    }
+}
