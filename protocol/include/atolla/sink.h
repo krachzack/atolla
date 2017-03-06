@@ -33,6 +33,9 @@ void atolla_sink_free(AtollaSink sink);
 
 AtollaSinkState atolla_sink_state(AtollaSink sink);
 
+/**
+ * If false, no frame available yet.
+ */
 bool atolla_sink_get(AtollaSink sink, void* frame, size_t frame_len);
 
 #endif // ATOLLA_SINK_H

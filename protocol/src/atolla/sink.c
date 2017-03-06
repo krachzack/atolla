@@ -22,9 +22,16 @@ struct AtollaSinkPrivate
     MemBlock recv_buf;
     MemBlock frame_buf;
 
-    int first_get_time;
+    int time_origin;
+    size_t last_enqueued_frame_idx;
 };
 typedef struct AtollaSinkPrivate AtollaSinkPrivate;
+
+/**
+ * The frame to be read should be this many frames ahead the frame that was last written.
+ * This ensures enqueueuing will not overwrite frames that have not yet been read.
+ */
+static const size_t access_padding = 10;
 
 static const size_t recv_buf_len = 3 + 65537;
 
@@ -103,17 +110,18 @@ bool atolla_sink_get(AtollaSink sink_handle, void* frame, size_t frame_len)
 
     if(lent)
     {
+        if(sink->time_origin == -1)
+        {
+            // The buffer needs to be filled first
+            return false;
+        }
+
         const size_t frame_size = sink->lights_count * 3;
         assert(frame_len >= frame_size);
 
         const size_t frame_buf_frame_count = sink->frame_buf.size / frame_size;
 
-        if(sink->first_get_time == -1)
-        {
-            sink->first_get_time = time_now();
-        }
-
-        size_t frame_idx = ((time_now() - sink->first_get_time) / sink->frame_duration_ms) % frame_buf_frame_count;
+        size_t frame_idx = ((time_now() - sink->time_origin) / sink->frame_duration_ms) % frame_buf_frame_count;
 
         void* frame_buf_frame = ((uint8_t*) sink->frame_buf.data) + (frame_idx * frame_size);
 
@@ -177,7 +185,7 @@ static void sink_iterate_recv_buf(AtollaSinkPrivate* sink)
 
 static void sink_handle_borrow(AtollaSinkPrivate* sink, int frame_length_ms, size_t buffer_length)
 {
-    assert(buffer_length >= 0);
+    assert(buffer_length > access_padding);
     assert(frame_length_ms >= 0);
 
     if(sink->frame_buf.data)
@@ -194,6 +202,8 @@ static void sink_handle_borrow(AtollaSinkPrivate* sink, int frame_length_ms, siz
 
     sink->frame_duration_ms = frame_length_ms;
     sink->state = ATOLLA_SINK_STATE_LENT;
+    sink->time_origin = -1;
+    sink->last_enqueued_frame_idx = 0;
 
     sink_send_lent(sink);
 }
@@ -202,7 +212,6 @@ static void sink_send_lent(AtollaSinkPrivate* sink)
 {
     MemBlock* lent_msg = msg_builder_lent(&sink->builder);
     udp_socket_send(&sink->socket, lent_msg->data, lent_msg->size);
-    sink->first_get_time = -1;
 }
 
 static void sink_handle_enqueue(AtollaSinkPrivate* sink, size_t frame_idx, MemBlock frame)
@@ -229,4 +238,15 @@ static void sink_handle_enqueue(AtollaSinkPrivate* sink, size_t frame_idx, MemBl
         frame_buf_bytes[offset + 1] = frame_input_bytes[(offset + 1) % frame.size];
         frame_buf_bytes[offset + 2] = frame_input_bytes[(offset + 2) % frame.size];
     }
+
+    // when either the maximum index was reached, or the index overflowed and the maximum
+    // index was never received due to package loss, the buffer is considered full for the
+    // first time. Dequeuing starts at this point, making it the origin time
+    if(sink->time_origin == -1 &&
+       (frame_idx > (frame_buf_frame_count - access_padding) || frame_idx < sink->last_enqueued_frame_idx))
+    {
+        sink->time_origin = time_now();
+    }
+
+    sink->last_enqueued_frame_idx = frame_idx;
 }
