@@ -28,6 +28,7 @@ struct AtollaSourcePrivate
 
     int first_borrow_time;
     int last_borrow_time;
+    // FIXME rather than lent time, the reference should be the first enqueued frame
     int last_frame_time;
 };
 typedef struct AtollaSourcePrivate AtollaSourcePrivate;
@@ -36,6 +37,8 @@ static AtollaSourcePrivate* source_private_make(const AtollaSourceSpec* spec);
 static void source_send_borrow(AtollaSourcePrivate* source);
 static void source_update(AtollaSourcePrivate* source);
 static void source_iterate_recv_buf(AtollaSourcePrivate* sink, size_t received_bytes);
+static void source_lent(AtollaSourcePrivate* source);
+static void source_fail(AtollaSourcePrivate* source);
 static void source_receive(AtollaSourcePrivate* source);
 static void source_manage_borrow_packet_loss(AtollaSourcePrivate* source);
 
@@ -103,7 +106,34 @@ AtollaSourceState atolla_source_state(AtollaSource source_handle)
 int atolla_source_frame_lag(AtollaSource source_handle)
 {
     AtollaSourcePrivate* source = (AtollaSourcePrivate*) source_handle.private;
-    return (time_now() - source->last_frame_time) / source->frame_length_ms;
+
+    source_update(source);
+
+    if(source->state == ATOLLA_SOURCE_STATE_ERROR)
+    {
+        // If in unrecoverable error state, report lagging behind 0 frames
+        return 0;
+    }
+    else if(source->state == ATOLLA_SOURCE_STATE_WAITING)
+    {
+        // If not fully connected yet, report maximum lag
+        return source->max_buffered_frames;
+    }
+    else
+    {
+        assert(source->state == ATOLLA_SOURCE_STATE_OPEN);
+
+        if(source->last_frame_time == -1)
+        {
+            // If connected, but no frame was enqueued yet, also report maximum lag
+            return source->max_buffered_frames;
+        }
+        else
+        {
+            // Otherwise, calculate lag based on the time of the last enqueud frame
+            return (time_now() - (source->last_frame_time + source->frame_length_ms)) / source->frame_length_ms;
+        }
+    }
 }
 
 /**
@@ -114,12 +144,14 @@ int atolla_source_frame_lag(AtollaSource source_handle)
  */
 bool atolla_source_put(AtollaSource source_handle, void* frame, size_t frame_len)
 {
+    AtollaSourcePrivate* source = (AtollaSourcePrivate*) source_handle.private;
+
+    source_update(source);
+
     if(atolla_source_state(source_handle) != ATOLLA_SOURCE_STATE_OPEN)
     {
         return false;
     }
-
-    AtollaSourcePrivate* source = (AtollaSourcePrivate*) source_handle.private;
 
     if(atolla_source_frame_lag(source_handle) == 0)
     {
@@ -133,7 +165,22 @@ bool atolla_source_put(AtollaSource source_handle, void* frame, size_t frame_len
     udp_socket_send(&source->sock, enqueue_msg->data, enqueue_msg->size);
 
     ++source->next_frame_idx;
-    source->last_frame_time += source->frame_length_ms;
+
+    if(source->last_frame_time == -1)
+    {
+        // If this is the first frame to be enqueued since the device was borrowed, its position
+        // in time is one full buffer of frames worth of milliseconds in the past with respect
+        // to the current time
+        //
+        // -1 because the device is showing one frame and that one we cannot overwrite
+        source->last_frame_time = time_now() - source->max_buffered_frames * source->frame_length_ms;
+    }
+    else
+    {
+        // Otherwise, advnace the last frame time, so we get closer to the point where no more
+        // frame can be enqueued
+        source->last_frame_time += source->frame_length_ms;
+    }
 
     return true;
 }
@@ -203,14 +250,13 @@ static void source_iterate_recv_buf(AtollaSourcePrivate* source, size_t received
         {
             case MSG_TYPE_LENT:
             {
-                source->state = ATOLLA_SOURCE_STATE_OPEN;
-                source->last_frame_time = time_now() - source->max_buffered_frames * source->frame_length_ms;
+                source_lent(source);
                 break;
             }
 
             case MSG_TYPE_FAIL:
             {
-                source->state = ATOLLA_SOURCE_STATE_ERROR;
+                source_fail(source);
                 break;
             }
 
@@ -221,4 +267,15 @@ static void source_iterate_recv_buf(AtollaSourcePrivate* source, size_t received
             }
         }
     }
+}
+
+static void source_lent(AtollaSourcePrivate* source)
+{
+    source->state = ATOLLA_SOURCE_STATE_OPEN;
+    source->last_frame_time = -1;
+}
+
+static void source_fail(AtollaSourcePrivate* source)
+{
+    source->state = ATOLLA_SOURCE_STATE_ERROR;
 }

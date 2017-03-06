@@ -149,6 +149,9 @@ static void test_blocking(void **state)
         assert(msg_iter_has_msg(&iter));
         assert_int_equal(MSG_TYPE_ENQUEUE, msg_iter_type(&iter));
 
+        uint8_t frame_idx = msg_iter_enqueue_frame_idx(&iter);
+        assert_int_equal(i, frame_idx);
+
         MemBlock sink_frame = msg_iter_enqueue_frame(&iter);
         assert_int_equal(sink_frame.size, frame_len);
         assert_memory_equal(frame, sink_frame.data, frame_len);   
@@ -186,9 +189,12 @@ static void test_frame_lag(void **state)
     for(int i = 0; i < buffered_frame_count; ++i)
     {
         atolla_source_put(source, frame, frame_len);
+        lag = atolla_source_frame_lag(source);
+
+        assert_int_equal((buffered_frame_count - (i + 1)), lag);
     }
 
-    // After completely filling the buffer, the lag should be zero
+    // After completely filling the buffer, the lag should be zero, compensating for natural extra lag
     lag = atolla_source_frame_lag(source);
     assert_int_equal(0, lag);
 
