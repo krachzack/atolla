@@ -21,6 +21,8 @@ MemBlock mem_block_alloc(size_t initial_capacity)
     block.size = 0;
     block.capacity = initial_capacity;
 
+    assert(initial_capacity == 0 || block.data != NULL);
+
     return block;
 }
 
