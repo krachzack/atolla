@@ -41,8 +41,8 @@ MsgIter msg_iter_make(
 bool msg_iter_has_msg(MsgIter* iter);
 
 /**
- * Selects the next message in the buffer. If no further messages are in the
- * buffer, the behavior is undefined.
+ * Selects the next message in the buffer. This function should not be called
+ * if msg_iter_has_msg has already returned false.
  */
 void msg_iter_next(MsgIter* iter);
 

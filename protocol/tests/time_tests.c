@@ -8,7 +8,6 @@
 
 #include <stdio.h>
 
-/* A test case that does nothing and succeeds. */
 static void test_delta(void **state)
 {
     const int tolerance = 5; // 5ms more or less is ok
@@ -20,7 +19,6 @@ static void test_delta(void **state)
 
     int delta = time_after - time_before;
 
-    // 1 ms more or less is ok I guess? 
     assert_in_range(delta,
                     chosen_delta - tolerance,
                     chosen_delta + tolerance);

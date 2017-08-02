@@ -161,7 +161,6 @@ bool atolla_source_put(AtollaSource source_handle, void* frame, size_t frame_len
     }
 
     MemBlock* enqueue_msg = msg_builder_enqueue(&source->builder, source->next_frame_idx, frame, frame_len);
-
     udp_socket_send(&source->sock, enqueue_msg->data, enqueue_msg->size);
 
     source->next_frame_idx = (source->next_frame_idx + 1) % source->max_buffered_frames;
@@ -177,7 +176,7 @@ bool atolla_source_put(AtollaSource source_handle, void* frame, size_t frame_len
     }
     else
     {
-        // Otherwise, advnace the last frame time, so we get closer to the point where no more
+        // Otherwise, advanace the last frame time, so we get closer to the point where no more
         // frame can be enqueued
         source->last_frame_time += source->frame_length_ms;
     }
