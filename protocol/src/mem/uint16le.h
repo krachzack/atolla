@@ -5,8 +5,9 @@
 #include "atolla/primitives.h"
 
 #ifdef NATIVE_BIG_ENDIAN
-    #define mem_uint16le_to(in)   ((uint16_t) (((in) << 8) | ((in) >> 8)) )
-    #define mem_uint16le_from(in) ((uint16_t) (((in) << 8) | ((in) >> 8)) )
+    // REVIEW what if input is wider than 16bit? does
+    #define mem_uint16le_to(in)   ((uint16_t) (((in) << 8) | (((in) & 0xFFFF) >> 8)) )
+    #define mem_uint16le_from(in) ((uint16_t) (((in) << 8) | (((in) & 0xFFFF) >> 8)) )
 #else
     #define mem_uint16le_to(in)   ((uint16_t) (in))
     #define mem_uint16le_from(in) ((uint16_t) (in))
