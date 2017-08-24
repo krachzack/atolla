@@ -70,7 +70,7 @@ AtollaSource atolla_source_make(const AtollaSourceSpec* spec);
 /**
  * Orderly shuts down the source first and then frees associated resources.
  * The source referenced by the given source handle may not be used again
- * after calling this function.
+ * after calling this function unless it is re-initialized with atolla_source_make.
  */
 void atolla_source_free(AtollaSource source);
 

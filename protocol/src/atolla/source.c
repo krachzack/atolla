@@ -11,6 +11,7 @@
 static const size_t recv_buf_len = 3 + 65537;
 static const int retry_timeout_ms_default = 10;
 static const int disconnect_timeout_ms_default = retry_timeout_ms_default * 10;
+static const int max_buffered_frames_default = 16;
 
 struct AtollaSourcePrivate
 {
@@ -28,7 +29,6 @@ struct AtollaSourcePrivate
 
     int first_borrow_time;
     int last_borrow_time;
-    // FIXME rather than lent time, the reference should be the first enqueued frame
     int last_frame_time;
 };
 typedef struct AtollaSourcePrivate AtollaSourcePrivate;
@@ -56,10 +56,14 @@ AtollaSource atolla_source_make(const AtollaSourceSpec* spec)
     assert(result.code == UDP_SOCKET_OK);
 
     result = udp_socket_set_receiver(&source->sock, spec->sink_hostname, (unsigned short) spec->sink_port);
-    assert(result.code == UDP_SOCKET_OK);
-
-    source->first_borrow_time = time_now();
-    source_send_borrow(source);
+    if(result.code == UDP_SOCKET_OK) {
+        // If hostname could be resolved, send first borrow
+        source->first_borrow_time = time_now();
+        source_send_borrow(source);
+    } else {
+        // If resolving failed, immediately enter error state
+        source->state = ATOLLA_SOURCE_STATE_ERROR;
+    }
 
     AtollaSource source_handle = { source };
     return source_handle;
@@ -73,7 +77,7 @@ static AtollaSourcePrivate* source_private_make(const AtollaSourceSpec* spec)
     source->recv_buf = malloc(recv_buf_len);
     source->next_frame_idx = 0;
     source->frame_length_ms = spec->frame_duration_ms;
-    source->max_buffered_frames = spec->max_buffered_frames;
+    source->max_buffered_frames = (spec->max_buffered_frames == 0) ? max_buffered_frames_default : spec->max_buffered_frames;
     source->retry_timeout_ms = (spec->retry_timeout_ms == 0) ? retry_timeout_ms_default : spec->retry_timeout_ms;
     source->disconnect_timeout_ms = (spec->disconnect_timeout_ms == 0) ? disconnect_timeout_ms_default : spec->disconnect_timeout_ms;
 
@@ -130,8 +134,8 @@ int atolla_source_frame_lag(AtollaSource source_handle)
         }
         else
         {
-            // Otherwise, calculate lag based on the time of the last enqueud frame
-            return (time_now() - (source->last_frame_time + source->frame_length_ms)) / source->frame_length_ms;
+            // Otherwise, calculate lag based on the time of the last enqueued frame
+            return (time_now() - source->last_frame_time) / source->frame_length_ms;
         }
     }
 }
@@ -153,26 +157,23 @@ bool atolla_source_put(AtollaSource source_handle, void* frame, size_t frame_len
         return false;
     }
 
-    if(atolla_source_frame_lag(source_handle) == 0)
+    int now = time_now();
+    int next_frame_time = source->last_frame_time + source->frame_length_ms;
+    if(next_frame_time > now)
     {
         // If the receiving device has no space in the buffer to hold new frames,
-        // wait for the duration of one frame
-        time_sleep(source->frame_length_ms);
+        // wait until the next frame was dequeued in the sink
+        time_sleep(next_frame_time - now);
     }
 
     MemBlock* enqueue_msg = msg_builder_enqueue(&source->builder, source->next_frame_idx, frame, frame_len);
     udp_socket_send(&source->sock, enqueue_msg->data, enqueue_msg->size);
 
-    source->next_frame_idx = (source->next_frame_idx + 1) % source->max_buffered_frames;
+    source->next_frame_idx = (source->next_frame_idx + 1) % 256;
 
     if(source->last_frame_time == -1)
     {
-        // If this is the first frame to be enqueued since the device was borrowed, its position
-        // in time is one full buffer of frames worth of milliseconds in the past with respect
-        // to the current time
-        //
-        // -1 because the device is showing one frame and that one we cannot overwrite
-        source->last_frame_time = time_now() - source->max_buffered_frames * source->frame_length_ms;
+        source->last_frame_time = time_now() - (source->max_buffered_frames - 1) * source->frame_length_ms;
     }
     else
     {
