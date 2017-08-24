@@ -20,7 +20,8 @@
 #cmakedefine HAVE_WINSOCK2
 #cmakedefine HAVE_POSIX_SOCKETS
 
-#cmakedefine NATIVE_BIG_ENDIAN
-#cmakedefine NATIVE_LITTLE_ENDIAN
+// Uncomment both to detect endianness at compile time
+//#cmakedefine NATIVE_BIG_ENDIAN
+//#cmakedefine NATIVE_LITTLE_ENDIAN
 
 #endif // ATOLLA_CONFIG_H
