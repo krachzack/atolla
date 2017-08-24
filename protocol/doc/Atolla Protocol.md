@@ -97,10 +97,7 @@ To overcome lag problems associated with WiFi, the device will utilize a
 buffering technique to save some frames into the future. Upon borrowing, the
 device will provide space for a buffer capable of holding at least as much
 frames as requested by the client. When the client then enqueues frames, they
-will be saved into the buffer. When the configured minimum amount of bufferable
-frames has been enqueued, the device will start dequeuing frames from the
-buffer with the frequency implied by the sent frame length, keeping the same
-color if no newer color is available yet.
+will be saved into the buffer.
 
 ### LENT – Confirm a live connection
 This message confirms that the device is available and ready for further
@@ -178,6 +175,7 @@ The following error codes are currently defined:
 | Error code | Meaning                                                   |
 |------------|-----------------------------------------------------------|
 | 0          | Tried to enqueue a frame, but the device is not borrowed to the current client. The client either never sent a BORROW or another client has borrowed it now. |
+| 1          | Tried to borrow with a buffer size that the sink cannot provide enough memory for. |
 
 #### Purpose
 Communicates to the client that one of its sent messages could not be

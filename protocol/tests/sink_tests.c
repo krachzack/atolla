@@ -74,7 +74,6 @@ static void test_fill_sink_buf(void **state)
         UdpSocketResult res = udp_socket_send(&source_sock, msg->data, msg->size);
         assert_int_equal(UDP_SOCKET_OK, res.code);
 
-        time_sleep(1);
         atolla_sink_state(sink); // this just makes sure the sink gets the updates
     }
 

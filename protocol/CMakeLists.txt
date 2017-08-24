@@ -96,6 +96,7 @@ set(
     include/atolla/sink.h
     include/atolla/source.h
     src/atolla/definitions.h
+    src/atolla/error_codes.h
     src/mem/block.h
     src/mem/ring.h
     src/mem/uint16le.h
