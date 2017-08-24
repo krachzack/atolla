@@ -76,6 +76,10 @@ static void run_sink()
             printf("(%d/%d/%d)\n", red, green, blue);
             sleep_ms(frame_length_ms);
         }
+        else
+        {
+            --i;
+        }
     }
 }
 
