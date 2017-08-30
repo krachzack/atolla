@@ -11,9 +11,14 @@
     {
         "include":
         [
-            "protocol/include/**/*.h",
-            "protocol/src/**/*.h",
-            "protocol/src/**/*.c",
+            "protocol/include/atolla/*.h",
+            "protocol/src/atolla/*.[ch]",
+            "protocol/src/mem/*.[ch]",
+            "protocol/src/msg/*.[ch]",
+            "protocol/src/test/assert.h",
+            "protocol/src/time/*.[hc]",
+            "protocol/src/udp_socket/*.[hc]",
+            "protocol/src/udp_socket/*.cpp",
             "protocol/src/**/*.cpp"
         ]
     },
