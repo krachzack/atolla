@@ -16,7 +16,7 @@
 // #define HAVE_ARDUINO_SLEEP
 
 // Uncomment one of these to disable runtime endianness detection and rely on a specific byte order
-//#cmakedefine NATIVE_BIG_ENDIAN
-//#cmakedefine NATIVE_LITTLE_ENDIAN
+#cmakedefine NATIVE_BIG_ENDIAN
+#cmakedefine NATIVE_LITTLE_ENDIAN
 
 #endif // ATOLLA_CONFIG_H
