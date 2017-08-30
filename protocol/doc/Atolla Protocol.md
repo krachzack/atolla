@@ -10,7 +10,7 @@ both unreliable protocols like UDP and reliable protocols like TCP.
 
 ## Endianness
 Multi-byte integers are always transmitted in little endian byte order. Hence,
-bytes within an integer with a lower byte offset are more significant.
+bytes within an integer with a higher byte offset are more significant.
 Implementations on big endian based systems must convert between internal and
 network representations when sending or receiving.
 
