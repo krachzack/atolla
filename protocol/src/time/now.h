@@ -6,6 +6,6 @@
  * of calling this function and the instant of a fixed but arbitrary origin time,
  * which may even be negative.
  */
-int time_now();
+unsigned int time_now();
 
 #endif // TIME_NOW_H
