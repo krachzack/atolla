@@ -1,6 +1,7 @@
 #include "test/assert.h"
 #include "msg/iter.h"
 #include "mem/uint16le.h"
+#include <string.h>
 
 static MemBlock msg_iter_payload(MsgIter* iter);
 static uint16_t msg_iter_payload_length(MsgIter* iter);
@@ -44,26 +45,31 @@ uint16_t msg_iter_msg_id(MsgIter* iter)
 {
     assert(msg_iter_has_msg(iter));
 
-    uint16_t* msg_id_ptr = (uint16_t*) (iter->msg_buf_start + 1);
-    return mem_uint16le_from(*msg_id_ptr);
+    uint16_t msg_id;
+    memcpy(&msg_id, iter->msg_buf_start + 1, 2);
+
+    return mem_uint16le_from(msg_id);
 }
 
 static uint16_t msg_iter_payload_length(MsgIter* iter)
 {
     assert(msg_iter_has_msg(iter));
 
-    uint16_t* payload_len_ptr = (uint16_t*) (iter->msg_buf_start + 3);
-    return mem_uint16le_from(*payload_len_ptr);
+    uint16_t payload_length;
+    memcpy(&payload_length, iter->msg_buf_start + 3, 2);
+
+    return mem_uint16le_from(payload_length);
 }
 
 static MemBlock msg_iter_payload(MsgIter* iter)
 {
     assert(msg_iter_has_msg(iter));
 
-    uint16_t* payload_len_ptr = (uint16_t*) (iter->msg_buf_start + 3);
+    uint16_t payload_len;
+    memcpy(&payload_len, iter->msg_buf_start + 3, 2);
+    payload_len = mem_uint16le_from(payload_len);
 
-    uint16_t payload_len = mem_uint16le_from(*payload_len_ptr);
-    void* payload = payload_len_ptr + 1;
+    void* payload = iter->msg_buf_start + 5;
 
     return mem_block_make(payload, payload_len);
 }
@@ -100,8 +106,12 @@ uint16_t msg_iter_fail_offending_msg_id(MsgIter* iter)
 {
     assert(msg_iter_type(iter) == MSG_TYPE_FAIL);
     MemBlock payload = msg_iter_payload(iter);
-    uint16_t* offending_msg_id_ptr = (uint16_t*) payload.data;
-    return *offending_msg_id_ptr;
+
+    uint16_t offending_msg_id;
+    memcpy(&offending_msg_id, payload.data, 2);
+    offending_msg_id = mem_uint16le_from(offending_msg_id);
+
+    return offending_msg_id;
 }
 
 uint8_t msg_iter_fail_error_code(MsgIter* iter)

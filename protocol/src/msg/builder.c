@@ -1,6 +1,6 @@
 #include "msg/builder.h"
 #include "msg/type.h"
-#include "mem/uint16le.h"
+#include "mem/uint16_byte.h"
 #include "test/assert.h"
 #include <string.h>
 
@@ -10,7 +10,7 @@ static const size_t header_len = sizeof(uint8_t)  + // message type
 
 static const size_t max_payload_len = 65535;
 
-static const size_t initial_block_capacity = header_len + 8;
+static const size_t initial_block_capacity = 32;
 
 static MemBlock* build(
     MsgBuilder* builder,
@@ -103,12 +103,11 @@ MemBlock* msg_builder_enqueue(
     const size_t frame_len_len = sizeof(uint16_t);
     const size_t payload_len = frame_idx_len + frame_len_len + frame_len;
     uint8_t payload[payload_len];
-
     payload[0] = frame_idx;
-    uint16_t* payload_frame_len = (uint16_t*) &payload[1];
+    payload[1] = mem_uint16_byte_high(frame_len);
+    payload[2] = mem_uint16_byte_low(frame_len);
+    
     void* payload_frame = (void*) &payload[3];
-
-    *payload_frame_len = mem_uint16le_to(frame_len);
     memcpy(payload_frame, frame, frame_len);    
 
     return build(builder, MSG_TYPE_ENQUEUE, payload, payload_len);
@@ -120,14 +119,12 @@ MemBlock* msg_builder_fail(
     uint8_t error_code
 )
 {
-    uint8_t payload[3];
+    uint8_t payload[3] = {
+        mem_uint16_byte_high(causing_message_id),
+        mem_uint16_byte_low(causing_message_id),
+        error_code
+    };
     const size_t payload_len = sizeof(payload) / sizeof(uint8_t);
-
-    uint16_t* causing_message_id_ptr = (uint16_t*) &payload[0];
-    uint8_t* error_code_ptr = (uint8_t*) (causing_message_id_ptr + 1);
-    *causing_message_id_ptr = mem_uint16le_to(causing_message_id);
-    *error_code_ptr = error_code;
-
     return build(builder, MSG_TYPE_FAIL, payload, payload_len);
 }
 
@@ -149,8 +146,9 @@ static void set_uint16(
 )
 {
     assert(block->size >= (byte_offset + sizeof(uint16_t)));
-    uint16_t* at = (uint16_t*) (((uint8_t*) block->data) + byte_offset);
-    *at = mem_uint16le_to(value);
+    uint8_t* target = ((uint8_t*) block->data) + byte_offset;
+    target[0] = mem_uint16_byte_high(value);
+    target[1] = mem_uint16_byte_low(value);
 }
 
 static void set_data(
@@ -162,11 +160,12 @@ static void set_data(
 {
     assert(block->size >= (byte_offset + sizeof(uint16_t) + data_len));
 
-    uint16_t* data_header_ptr = (uint16_t*) (((uint8_t*) block->data) + byte_offset);
-    *data_header_ptr = mem_uint16le_to(data_len);
+    uint8_t* data_header_ptr = ((uint8_t*) block->data) + byte_offset;
+    data_header_ptr[0] = mem_uint16_byte_high(data_len);
+    data_header_ptr[1] = mem_uint16_byte_low(data_len);
 
     if(data_len > 0) {
-        void* data_payload_ptr = data_header_ptr + 1;
+        void* data_payload_ptr = data_header_ptr + 2;
         memcpy(data_payload_ptr, data, data_len);
     }
 }
