@@ -1,5 +1,5 @@
 static const char* msg_socket_is_null = "The given UdpSocket is NULL";
-#ifdef HAVE_WINSOCK2
+#if defined(_WIN32) || defined(WIN32)
 static const char* msg_platform_init_failed = "Initalization of the winsock2 API failed";
 #endif
 static const char* msg_socket_creation_failed = "Failed to create the socket";

@@ -1,14 +1,14 @@
 #include "time/now.h"
 
-#ifdef HAVE_ARDUINO_SLEEP
-#include <Arduino.h>
+#ifdef ARDUINO_ARCH_ESP8266
+    #include <Arduino.h>
 #else
-#include "time/gettime.h"
+    #include "time/gettime.h"
 #endif
 
 unsigned int time_now()
 {
-#ifdef HAVE_ARDUINO_SLEEP
+#ifdef ARDUINO_ARCH_ESP8266
     return millis();
 #else
     struct timespec ts;

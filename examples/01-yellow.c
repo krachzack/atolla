@@ -1,15 +1,12 @@
 #include <atolla/sink.h>
 #include <atolla/source.h>
-#include "atolla/config.h"
 
-#if defined(HAVE_POSIX_SLEEP)
-    #include <unistd.h>
-    #define sleep_ms(ms) (usleep((ms) * 1000))
-#elif defined(HAVE_WINDOWS_SLEEP)
+#if defined(_WIN32) || defined(WIN32)
     #include <windows.h>
     #define sleep_ms(ms) (Sleep((ms)))
 #else
-    #error "No sleep function available"
+    #include <unistd.h>
+    #define sleep_ms(ms) (usleep((ms) * 1000))
 #endif
 
 #include <unistd.h> // for fork

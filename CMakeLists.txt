@@ -73,12 +73,6 @@ else()
     set(NATIVE_LITTLE_ENDIAN 1)
 endif()
 
-#
-# Write configuration to build dir
-#
-
-configure_file(src/atolla/config.h.in ${CMAKE_CURRENT_BINARY_DIR}/include/atolla/config.h)
-
 
 #
 # Set include directories
@@ -91,12 +85,10 @@ include_directories(include src ${CMAKE_CURRENT_BINARY_DIR}/include ${CMOCKA_INC
 
 set(
     LIBRARY_HEADERS
-    ${CMAKE_CURRENT_BINARY_DIR}/include/atolla/config.h
     include/atolla/primitives.h
     include/atolla/sink.h
     include/atolla/source.h
     src/atolla/client_error_messages.h
-    src/atolla/definitions.h
     src/atolla/error_codes.h
     src/mem/block.h
     src/mem/ring.h

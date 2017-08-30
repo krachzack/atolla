@@ -1,6 +1,10 @@
 #ifndef ATOLLA_SOURCE_H
 #define ATOLLA_SOURCE_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "atolla/primitives.h"
 
 enum AtollaSourceState
@@ -94,5 +98,9 @@ int atolla_source_frame_lag(AtollaSource source);
  * a non-zero value, atolla_source_put is guaranteed not to wait.
  */
 bool atolla_source_put(AtollaSource source, void* frame, size_t frame_len);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // ATOLLA_SOURCE_H

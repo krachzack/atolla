@@ -2,8 +2,13 @@
 #include <stdio.h>
 #include <math.h>
 
-#include <unistd.h>
-#define sleep_ms(ms) (usleep((ms) * 1000))
+#if defined(_WIN32) || defined(WIN32)
+    #include <windows.h>
+    #define sleep_ms(ms) (Sleep((ms)))
+#else
+    #include <unistd.h>
+    #define sleep_ms(ms) (usleep((ms) * 1000))
+#endif
 
 const char* hostname = "brett.local";
 const int port = 10042;

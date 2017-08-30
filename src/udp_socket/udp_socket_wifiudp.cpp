@@ -1,4 +1,4 @@
-#ifdef HAVE_ARDUINO_WIFI_UDP
+#if defined(ARDUINO_ARCH_ESP8266)
 
 #include <Arduino.h>
 #include <WifiUdp.h>

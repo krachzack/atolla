@@ -6,8 +6,6 @@
 #include "udp_socket/udp_socket.h"
 #include "time/sleep.h"
 
-#include "atolla/config.h"
-
 static void test_init_null(void** state)
 {
     UdpSocketResult result;

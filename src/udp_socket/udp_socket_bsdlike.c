@@ -1,8 +1,5 @@
-#ifndef HAVE_ARDUINO_WIFI_UDP
-#include "atolla/config.h"
-#endif
-
-#if defined(HAVE_POSIX_SOCKETS) || defined(HAVE_WINSOCK2)
+// If not compiled for ESP8266 must be either windows or posix sockets
+#ifndef ARDUINO_ARCH_ESP8266
 
 #include <unistd.h> // for close
 #include <stdio.h> // for sprintf
@@ -21,7 +18,7 @@ static UdpSocketResult udp_socket_initialize_socket_support(UdpSocket* socket);
 static UdpSocketResult udp_socket_create_socket(UdpSocket* sock, unsigned short port);
 static UdpSocketResult udp_socket_set_socket_nonblocking(UdpSocket* socket);
 
-#ifdef HAVE_WINSOCK2
+#if defined(_WIN32) || defined(WIN32)
     WSADATA WsaData;
 #endif
 
@@ -101,13 +98,12 @@ static UdpSocketResult udp_socket_create_socket(UdpSocket* sock, unsigned short 
 
 static UdpSocketResult udp_socket_set_socket_nonblocking(UdpSocket* socket)
 {
-    #if defined(HAVE_POSIX_SOCKETS)
+    #if defined(_WIN32) || defined(WIN32)
 
-        int nonBlocking = 1;
-        if(fcntl(socket->socket_handle,
-                 F_SETFL,
-                 O_NONBLOCK,
-                 nonBlocking) == -1)
+        DWORD nonBlocking = 1;
+        if(ioctlsocket(socket->socket_handle,
+                       FIONBIO,
+                       &nonBlocking) != 0)
         {
             return make_err_result(
                 UDP_SOCKET_ERR_SET_NONBLOCKING_FAILED,
@@ -115,12 +111,13 @@ static UdpSocketResult udp_socket_set_socket_nonblocking(UdpSocket* socket)
             );
         }
 
-    #elif defined(HAVE_WINSOCK2)
-
-        DWORD nonBlocking = 1;
-        if(ioctlsocket(socket->socket_handle,
-                       FIONBIO,
-                       &nonBlocking) != 0)
+    #else
+    
+        int nonBlocking = 1;
+        if(fcntl(socket->socket_handle,
+                    F_SETFL,
+                    O_NONBLOCK,
+                    nonBlocking) == -1)
         {
             return make_err_result(
                 UDP_SOCKET_ERR_SET_NONBLOCKING_FAILED,
@@ -138,7 +135,7 @@ static UdpSocketResult udp_socket_set_socket_nonblocking(UdpSocket* socket)
  */
 static UdpSocketResult udp_socket_initialize_socket_support(UdpSocket* socket)
 {
-    #ifdef HAVE_WINSOCK2
+    #if defined(_WIN32) || defined(WIN32)
         static bool initialized = false;
 
         if(!initialized)
@@ -186,16 +183,7 @@ UdpSocketResult udp_socket_free(UdpSocket* socket)
 
 static UdpSocketResult udp_socket_close(UdpSocket* socket)
 {
-    #if defined(HAVE_POSIX_SOCKETS)
-        int error = close(socket->socket_handle);
-        if(error == -1)
-        {
-            return make_err_result(
-                UDP_SOCKET_ERR_FREE_FAILED,
-                strerror(errno)
-            );
-        }
-    #elif defined(HAVE_WINSOCK2)
+    #if defined(_WIN32) || defined(WIN32)
         int error = closesocket(socket->socket_handle);
         if(error != 0)
         {
@@ -205,7 +193,14 @@ static UdpSocketResult udp_socket_close(UdpSocket* socket)
             );
         }
     #else
-        #error "Don't know how to close socket"
+        int error = close(socket->socket_handle);
+        if(error == -1)
+        {
+            return make_err_result(
+                UDP_SOCKET_ERR_FREE_FAILED,
+                strerror(errno)
+            );
+        }
     #endif
 
     return make_success_result();
@@ -220,8 +215,6 @@ UdpSocketResult udp_socket_set_receiver(UdpSocket* socket, const char* hostname,
             msg_socket_is_null
         );
     }
-
-#if defined(HAVE_POSIX_SOCKETS) || defined(HAVE_WINSOCK2)
 
     // A two-byte number can be a maximum of five characters in a string plus one \0
     char port[6];
@@ -299,12 +292,6 @@ UdpSocketResult udp_socket_set_receiver(UdpSocket* socket, const char* hostname,
         }
     }
 
-#else
-
-    assert(false); // Cannot set receiver with arduino
-
-#endif
-
     return make_success_result();
 }
 
@@ -321,7 +308,6 @@ UdpSocketResult udp_socket_send(UdpSocket* socket, void* packet_data, size_t pac
         );
     }
 
-#if defined(HAVE_POSIX_SOCKETS) || defined(HAVE_WINSOCK2)
     int sent_bytes = send(socket->socket_handle,
                           packet_data,
                           packet_data_len,
@@ -367,8 +353,6 @@ UdpSocketResult udp_socket_send(UdpSocket* socket, void* packet_data, size_t pac
     }
 
     assert(sent_bytes == packet_data_len);
-
-#endif
 
     return make_success_result();
 }
