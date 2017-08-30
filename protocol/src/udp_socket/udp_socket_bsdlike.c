@@ -1,4 +1,7 @@
-#include <stddef.h> // for size_t
+#include "atolla/config.h"
+
+#if defined(HAVE_POSIX_SOCKETS) || defined(HAVE_WINSOCK2)
+
 #include <unistd.h> // for close
 #include <stdio.h> // for sprintf
 #include <stdbool.h>
@@ -8,10 +11,7 @@
 #include "sockets_headers.h"
 #include "udp_socket_messages.h"
 #include "udp_socket.h"
-
-#if !defined(HAVE_POSIX_SOCKETS) && !defined(HAVE_WINSOCK2)
-#error "Either standard posix sockets or windows sockets need to be available"
-#endif
+#include "udp_socket_results_internal.h"
 
 /** Free resources associated with the socket allocated by the operating system */
 static UdpSocketResult udp_socket_close(UdpSocket* socket);
@@ -22,28 +22,6 @@ static UdpSocketResult udp_socket_set_socket_nonblocking(UdpSocket* socket);
 #ifdef HAVE_WINSOCK2
     WSADATA WsaData;
 #endif
-
-static UdpSocketResult make_success_result() {
-    UdpSocketResult result;
-    result.code = 0;
-    result.msg = NULL;
-    return result;
-}
-
-static UdpSocketResult make_err_result(UdpSocketResultCode code, const char* msg) {
-    assert(code != UDP_SOCKET_OK);
-
-    UdpSocketResult result;
-    result.code = code;
-    result.msg = msg;
-    return result;
-}
-
-UdpSocketResult udp_socket_init(UdpSocket* socket)
-{
-    // use any free port
-    return udp_socket_init_on_port(socket, 0);
-}
 
 UdpSocketResult udp_socket_init_on_port(UdpSocket* socket, unsigned short port)
 {
@@ -224,6 +202,8 @@ static UdpSocketResult udp_socket_close(UdpSocket* socket)
                 "Closing the socket failed"
             );
         }
+    #else
+        #error "Don't know how to close socket"
     #endif
 
     return make_success_result();
@@ -238,6 +218,8 @@ UdpSocketResult udp_socket_set_receiver(UdpSocket* socket, const char* hostname,
             msg_socket_is_null
         );
     }
+
+#if defined(HAVE_POSIX_SOCKETS) || defined(HAVE_WINSOCK2)
 
     // A two-byte number can be a maximum of five characters in a string plus one \0
     char port[6];
@@ -315,6 +297,12 @@ UdpSocketResult udp_socket_set_receiver(UdpSocket* socket, const char* hostname,
         }
     }
 
+#else
+
+    assert(false); // Cannot set receiver with arduino
+
+#endif
+
     return make_success_result();
 }
 
@@ -331,6 +319,7 @@ UdpSocketResult udp_socket_send(UdpSocket* socket, void* packet_data, size_t pac
         );
     }
 
+#if defined(HAVE_POSIX_SOCKETS) || defined(HAVE_WINSOCK2)
     int sent_bytes = send(socket->socket_handle,
                           packet_data,
                           packet_data_len,
@@ -376,6 +365,9 @@ UdpSocketResult udp_socket_send(UdpSocket* socket, void* packet_data, size_t pac
     }
 
     assert(sent_bytes == packet_data_len);
+
+#endif
+
     return make_success_result();
 }
 
@@ -384,9 +376,9 @@ UdpSocketResult udp_socket_receive(UdpSocket* socket, void* packet_data, size_t 
     assert(packet_data != NULL);
     assert(max_packet_size > 0);
 
-    #ifdef HAVE_WINSOCK2
-        typedef int socklen_t;
-    #endif
+#ifdef HAVE_WINSOCK2
+    typedef int socklen_t;
+#endif
 
     struct sockaddr_storage from;
     socklen_t from_len = sizeof(from);
@@ -446,3 +438,5 @@ UdpSocketResult udp_socket_receive(UdpSocket* socket, void* packet_data, size_t 
         return make_success_result();
     }
 }
+
+#endif

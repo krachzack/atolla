@@ -20,7 +20,11 @@
 #cmakedefine HAVE_WINSOCK2
 #cmakedefine HAVE_POSIX_SOCKETS
 
-// Uncomment both to detect endianness at compile time
+// Uncomment to use arduino WiFi and timing APIs, suitable for ESP8266
+// #define HAVE_ARDUINO_WIFI_UDP
+// #define HAVE_ARDUINO_SLEEP
+
+// Uncomment one of these to disable runtime endianness detection and rely on a specific byte order
 //#cmakedefine NATIVE_BIG_ENDIAN
 //#cmakedefine NATIVE_LITTLE_ENDIAN
 

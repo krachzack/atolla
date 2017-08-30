@@ -11,6 +11,9 @@
 #elif defined(HAVE_WINSOCK2)
     #pragma comment( lib, "wsock32.lib" )
     #include <winsock2.h>
+#elif defined(HAVE_ARDUINO_WIFI_UDP)
+    #include <Arduino.h>
+    #include <WiFiUdp.h>
 #else
     #error "Neither Posix Sockets nor Windows Sockets could be found by the build system"
 #endif

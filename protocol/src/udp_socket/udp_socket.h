@@ -7,7 +7,12 @@
 #ifndef _udp_socket_h_
 #define _udp_socket_h_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <stdbool.h>
+#include <stddef.h> // for size_t
 
 /**
  * Represents a reference to a native socket.
@@ -207,5 +212,9 @@ UdpSocketResult udp_socket_send(UdpSocket* socket, void* packet_data, size_t pac
  * to a human readable error message.
  */
 UdpSocketResult udp_socket_receive(UdpSocket* socket, void* packet_buffer, size_t packet_buffer_capacity, size_t* received_byte_count, bool then_respond);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _udp_socket_h_ */
