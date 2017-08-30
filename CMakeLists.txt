@@ -88,7 +88,6 @@ set(
     include/atolla/primitives.h
     include/atolla/sink.h
     include/atolla/source.h
-    src/atolla/client_error_messages.h
     src/atolla/error_codes.h
     src/mem/block.h
     src/mem/ring.h
