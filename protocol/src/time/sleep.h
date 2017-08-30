@@ -13,7 +13,8 @@
     #include <windows.h>
     #define time_sleep(ms) (Sleep((ms)))
 #else
-    #error "No sleep function available"
+    #include <Arduino.h>
+    #define time_sleep(ms) (delay((ms))
 #endif
 
 #endif // TIME_SLEEP_H
