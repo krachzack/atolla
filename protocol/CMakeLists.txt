@@ -95,22 +95,25 @@ set(
     include/atolla/primitives.h
     include/atolla/sink.h
     include/atolla/source.h
+    src/atolla/client_error_messages.h
     src/atolla/definitions.h
     src/atolla/error_codes.h
     src/mem/block.h
     src/mem/ring.h
+    src/mem/uint16_byte.h
     src/mem/uint16le.h
     src/msg/builder.h
     src/msg/iter.h
     src/msg/type.h
-    src/udp_socket/sockets_headers.h
-    src/udp_socket/udp_socket_messages.h
-    src/udp_socket/udp_socket.h
     src/test/assert.h
     src/time/gettime.h
     src/time/mach_gettime.h
     src/time/now.h
     src/time/sleep.h
+    src/udp_socket/sockets_headers.h
+    src/udp_socket/udp_socket_messages.h
+    src/udp_socket/udp_socket_results_internal.h
+    src/udp_socket/udp_socket.h
 )
 set(LIBRARY_IMPLS
     src/atolla/sink.c
@@ -119,7 +122,10 @@ set(LIBRARY_IMPLS
     src/mem/ring.c
     src/msg/builder.c
     src/msg/iter.c
-    src/udp_socket/udp_socket.c
+    src/udp_socket/udp_socket_base.c
+    src/udp_socket/udp_socket_bsdlike.c
+    src/udp_socket/udp_socket_results_internal.c
+    src/udp_socket/udp_socket_wifiudp.cpp
     src/time/mach_gettime.c
     src/time/now.c
 )
