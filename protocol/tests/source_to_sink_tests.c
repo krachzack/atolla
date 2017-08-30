@@ -81,7 +81,8 @@ static void test_stream_rising(void **state)
 
     for(uint8_t i = 0; i < buffered_frame_count; ++i)
     {
-        uint8_t frame[3] = { ~i, ~i, ~i }; 
+        uint8_t frame[3] = { ~i, ~i, ~i };
+        atolla_sink_state(sink); // update the sink
         bool ok = atolla_sink_get(sink, frame, 3);
 
         if(ok) {
