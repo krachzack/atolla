@@ -1,0 +1,21 @@
+{
+    "name": "atolla",
+    "description": "Library to stream light information over the network using WifiUdp in ESP8266",
+    "keywords": "wifi light streaming",
+    "repository":
+    {
+        "type": "git",
+        "url": "https://github.com/krachzack/atolla.git"
+    },
+    "export":
+    {
+        "include":
+        [
+            "protocol/include/**/*.h",
+            "protocol/src/**/*.h",
+            "protocol/src/**/*.c",
+            "protocol/src/**/*.cpp"
+        ]
+    },
+    "platforms": [ "espressif8266" ]
+}
