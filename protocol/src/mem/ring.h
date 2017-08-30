@@ -16,9 +16,14 @@ typedef struct MemRing MemRing;
 MemRing mem_ring_alloc(size_t capacity);
 
 /**
- * Frees the memory ring, effectively resizing it to size zero.
+ * Frees the memory ring.
  */
 void mem_ring_free(MemRing* ring);
+
+/**
+ * Returns true if ring has size zero.
+ */
+bool mem_ring_is_empty(MemRing* ring);
 
 /**
  * Obtains a reference to the oldest peek_len bytes in the queue by overwriting
@@ -38,6 +43,14 @@ bool mem_ring_peek(MemRing* ring, void** peek_addr, size_t peek_len);
  * If not enough data is available, returns false, otherwise true.
  */
 bool mem_ring_dequeue(MemRing* ring, void* buf, size_t buf_len);
+
+/**
+ * Invalidates the oldest drop_len beytes, making room for enqueuing.
+ * 
+ * If not enough data is available to drop, returns false and does not drop anything,
+ * otherwise true.
+ */
+bool mem_ring_drop(MemRing* ring, size_t drop_len);
 
 /**
  * Copies the given buffer into the ring buffer, making the data available

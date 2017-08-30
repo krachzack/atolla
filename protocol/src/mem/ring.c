@@ -15,6 +15,11 @@
     ring->front = 0;
     ring->len = 0;
  }
+
+ bool mem_ring_is_empty(MemRing* ring)
+ {
+     return ring->len > 0;
+ }
  
  bool mem_ring_peek(MemRing* ring, void** peek_addr, size_t peek_len)
  {
@@ -38,6 +43,14 @@
     ring->len -= out_buf_len;
 
     memcpy(out_buf, front_block.data, out_buf_len);
+    return true;
+ }
+
+ bool mem_ring_drop(MemRing* ring, size_t drop_len)
+ {
+    if(ring->len < drop_len) return false;
+    ring->front = (ring->front + drop_len) % ring->buf.size;
+    ring->len -= drop_len;
     return true;
  }
  
