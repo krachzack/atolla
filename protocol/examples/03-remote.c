@@ -2,15 +2,8 @@
 #include <stdio.h>
 #include <math.h>
 
-#if defined(HAVE_POSIX_SLEEP)
 #include <unistd.h>
 #define sleep_ms(ms) (usleep((ms) * 1000))
-#elif defined(HAVE_WINDOWS_SLEEP)
-#include <windows.h>
-#define sleep_ms(ms) (Sleep((ms)))
-#else
-#error "No sleep function available"
-#endif
 
 const char* hostname = "brett.local";
 const int port = 10042;

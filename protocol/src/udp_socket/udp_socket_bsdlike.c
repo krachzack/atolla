@@ -1,4 +1,6 @@
+#ifndef HAVE_ARDUINO_WIFI_UDP
 #include "atolla/config.h"
+#endif
 
 #if defined(HAVE_POSIX_SOCKETS) || defined(HAVE_WINSOCK2)
 

@@ -1,7 +1,11 @@
 #ifndef MSG_MEM_UINT16LE_H
 #define MSG_MEM_UINT16LE_H
 
+#ifndef HAVE_ARDUINO_WIFI_UDP
+// Don't use config file when compiling for arduino
 #include "atolla/config.h"
+#endif
+
 #include "atolla/primitives.h"
 
 #define IS_BIG_ENDIAN (*(uint16_t *)"\0\xff" < 0x100)

@@ -2,11 +2,6 @@
 #define MSG_BLOCK_H
 
 #include "atolla/primitives.h"
-#include "atolla/config.h"
-
-#ifndef HAVE_MALLOC
-#error "No function for memory allocation available"
-#endif
 
 /**
  * References a block of dynamically allocated memory.

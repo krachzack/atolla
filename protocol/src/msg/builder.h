@@ -4,10 +4,6 @@
 #include "mem/block.h"
 #include "atolla/primitives.h"
 
-#ifndef HAVE_MEMCPY
-#error "No function for memory copying available"
-#endif
-
 /**
  * Assembles atolla messages in an internal memory block that is managed by the
  * builder.

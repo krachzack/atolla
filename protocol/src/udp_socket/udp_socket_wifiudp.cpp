@@ -1,5 +1,3 @@
-#include "atolla/config.h"
-
 #ifdef HAVE_ARDUINO_WIFI_UDP
 
 #include <Arduino.h>

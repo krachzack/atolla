@@ -1,7 +1,10 @@
 #ifndef TIME_SLEEP_H
 #define TIME_SLEEP_H
 
+#ifndef HAVE_ARDUINO_SLEEP
+// Don't use config file when compiling for arduino
 #include "atolla/config.h"
+#endif
 
 #if defined(HAVE_POSIX_SLEEP)
     #include <unistd.h>
