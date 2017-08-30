@@ -135,12 +135,16 @@ add_library(atolla.${ATOLLA_VERSION_MAJOR}.${ATOLLA_VERSION_MINOR}.${ATOLLA_VERS
 
 add_executable(example_yellow examples/01-yellow.c)
 add_executable(example_sine   examples/02-sine.c)
+add_executable(example_remote examples/03-remote.c)
 
 target_link_libraries(example_yellow atolla)
 add_custom_target(run_example_yellow DEPENDS example_yellow COMMAND ../build/example_yellow)
 
 target_link_libraries(example_sine atolla)
 add_custom_target(run_example_sine DEPENDS example_sine COMMAND ../build/example_sine)
+
+target_link_libraries(example_remote atolla)
+add_custom_target(run_example_remote DEPENDS example_remote COMMAND ../build/example_remote)
 
 add_cmocka_test(mem_ring_tests       tests/mem_ring_tests.c       ${LIBRARY_SRC})
 add_cmocka_test(msg_builder_tests    tests/msg_builder_tests.c    ${LIBRARY_SRC})
