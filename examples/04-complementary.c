@@ -1,28 +1,14 @@
 #include <atolla/source.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <math.h>
 
-#if defined(_WIN32) || defined(WIN32)
-    #include <windows.h>
-    #define sleep_ms(ms) (Sleep((ms)))
-#else
-    #include <unistd.h>
-    #define sleep_ms(ms) (usleep((ms) * 1000))
-#endif
+const int frame_length_ms = 17;
+const int max_buffered_frames = 50;
+const int run_time_ms = 10000;
 
-const char* hostname = "brett.local";
-const int port = 10042;
-const int frame_length_ms = 30;
-const int max_buffered_frames = 100;
-const int simulation_length = 20; // amount of buffers to simulate
-
-static void run_sink();
-static void run_source();
-
-int main(int argc, char* argv[])
-{
-    run_source();   
-}
+static void run_source(const char* sink_hostname, int port);
+static void paint(AtollaSource source);
 
 typedef struct RgbColor
 {
@@ -84,38 +70,12 @@ RgbColor HsvToRgb(HsvColor hsv)
 }
 
 
-static void run_source()
+static void paint(AtollaSource source)
 {
-    AtollaSourceSpec spec;
-    spec.sink_hostname = hostname;
-    spec.sink_port = port;
-    spec.frame_duration_ms = frame_length_ms;
-    spec.max_buffered_frames = max_buffered_frames;
-    spec.retry_timeout_ms = 0; // 0 means pick a default value
-    spec.disconnect_timeout_ms = 0; // 0 means pick a default value
-
-    printf("Starting atolla source\n");
-
-    AtollaSource source = atolla_source_make(&spec);
-
-    int iterations = 0;
-    while(atolla_source_state(source) != ATOLLA_SOURCE_STATE_OPEN)
-    {
-        if(atolla_source_state(source) == ATOLLA_SOURCE_STATE_ERROR) {
-            printf("Borrow failed\n");
-            return;
-        }
-
-        ++iterations;
-        sleep_ms(1);
-    }
-
-    printf("Is open after %d iterations\n", iterations);
-
     static double t = 0.0;
     uint8_t frame[] = { 1, 2, 3, 4, 5, 6 };
 
-    for(int i = 0; i < max_buffered_frames * simulation_length; ++i)
+    for(int i = 0; (i*frame_length_ms) < run_time_ms; ++i)
     {
         t += frame_length_ms / 1000.0;
         double poscos = (cos(t*10) + 1.0) / 2.0;
@@ -137,4 +97,43 @@ static void run_source()
 
         atolla_source_put(source, frame, sizeof(frame) / sizeof(uint8_t));
     }
+}
+
+static void run_source(const char* sink_hostname, int port)
+{
+    AtollaSourceSpec spec;
+    spec.sink_hostname = sink_hostname;
+    spec.sink_port = port;
+    spec.frame_duration_ms = frame_length_ms;
+    spec.max_buffered_frames = max_buffered_frames;
+    spec.retry_timeout_ms = 0; // 0 means pick a default value
+    spec.disconnect_timeout_ms = 0; // 0 means pick a default value
+
+    printf("Starting atolla source\n");
+
+    AtollaSource source = atolla_source_make(&spec);
+
+    AtollaSourceState state;
+
+    while((state = atolla_source_state(source)) == ATOLLA_SOURCE_STATE_WAITING) {}
+
+    if(state == ATOLLA_SOURCE_STATE_OPEN) {
+        printf("Atolla source received lent\n");
+        paint(source);
+    } else {
+        printf("Error occurred lending\n");
+    }
+}
+
+int main(int argc, const char* argv[])
+{
+    if(argc < 3) {
+        run_source("127.0.0.1", 10042);
+    } else {
+        const char* sink_hostname = argv[1];
+        int port = atoi(argv[2]);
+        run_source(sink_hostname, port);
+    }
+
+    return EXIT_SUCCESS;
 }
