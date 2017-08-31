@@ -9,18 +9,7 @@
     },
     "export":
     {
-        "include":
-        [
-            "protocol/include/atolla/*.h",
-            "protocol/src/atolla/*.[ch]",
-            "protocol/src/mem/*.[ch]",
-            "protocol/src/msg/*.[ch]",
-            "protocol/src/test/assert.h",
-            "protocol/src/time/*.[hc]",
-            "protocol/src/udp_socket/*.[hc]",
-            "protocol/src/udp_socket/*.cpp",
-            "protocol/src/**/*.cpp"
-        ]
+        "include": "src"
     },
     "platforms": [ "espressif8266" ]
 }
