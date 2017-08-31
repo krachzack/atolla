@@ -1,4 +1,5 @@
 #include "atolla/source.h"
+#include "atolla/error_codes.h"
 #include "msg/builder.h"
 #include "msg/iter.h"
 #include "test/assert.h"
@@ -30,6 +31,8 @@ struct AtollaSourcePrivate
     int first_borrow_time;
     int last_borrow_time;
     int last_frame_time;
+
+    const char* error_msg;
 };
 typedef struct AtollaSourcePrivate AtollaSourcePrivate;
 
@@ -38,7 +41,7 @@ static void source_send_borrow(AtollaSourcePrivate* source);
 static void source_update(AtollaSourcePrivate* source);
 static void source_iterate_recv_buf(AtollaSourcePrivate* sink, size_t received_bytes);
 static void source_lent(AtollaSourcePrivate* source);
-static void source_fail(AtollaSourcePrivate* source);
+static void source_fail(AtollaSourcePrivate* source, const char* error_msg);
 static void source_receive(AtollaSourcePrivate* source);
 static void source_manage_borrow_packet_loss(AtollaSourcePrivate* source);
 
@@ -63,6 +66,7 @@ AtollaSource atolla_source_make(const AtollaSourceSpec* spec)
     } else {
         // If resolving failed, immediately enter error state
         source->state = ATOLLA_SOURCE_STATE_ERROR;
+        source_fail(source, "Sink hostname could not be resolved.");
     }
 
     AtollaSource source_handle = { source };
@@ -105,6 +109,16 @@ AtollaSourceState atolla_source_state(AtollaSource source_handle)
     source_update(source);
 
     return source->state;
+}
+
+const char* atolla_source_error_msg(AtollaSource source_handle)
+{
+    AtollaSourcePrivate* source = (AtollaSourcePrivate*) source_handle.internal;
+    if(source->state == ATOLLA_SOURCE_STATE_ERROR) {
+        return source->error_msg;
+    } else {
+        return NULL;
+    }
 }
 
 int atolla_source_frame_lag(AtollaSource source_handle)
@@ -228,7 +242,7 @@ static void source_manage_borrow_packet_loss(AtollaSourcePrivate* source)
         {
             // If no lent message was received after the disconnect timeout,
             // enter unrecoverable error state
-            source->state = ATOLLA_SOURCE_STATE_ERROR;
+            source_fail(source, "Tried to lend the sink, but the attempt timed out.");
         }
         else if(time_since_last_borrow > source->retry_timeout_ms)
         {
@@ -256,13 +270,28 @@ static void source_iterate_recv_buf(AtollaSourcePrivate* source, size_t received
 
             case MSG_TYPE_FAIL:
             {
-                source_fail(source);
+                switch(msg_iter_fail_error_code(&iter))
+                {
+                    case ATOLLA_ERROR_CODE_NOT_BORROWED:
+                        source_fail(source, "The sink signalled that is not currently borrowed by this source.");
+                        break;
+
+                    case ATOLLA_ERROR_CODE_REQUESTED_BUFFER_TOO_LARGE:
+                        source_fail(source, "The sink does not have enough memory for a frame queue of the requested length.");
+                        break;
+
+                    default:
+                        source_fail(source, "The sink signalled an unrecoverable error state.");
+                        break;
+                }
+
+                
                 break;
             }
 
             default:
             {
-                assert(false);
+                source_fail(source, "Malformed or unknown message type received");
                 break;
             }
         }
@@ -275,7 +304,8 @@ static void source_lent(AtollaSourcePrivate* source)
     source->last_frame_time = -1;
 }
 
-static void source_fail(AtollaSourcePrivate* source)
+static void source_fail(AtollaSourcePrivate* source, const char* error_msg)
 {
     source->state = ATOLLA_SOURCE_STATE_ERROR;
+    source->error_msg = error_msg;
 }

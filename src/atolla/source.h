@@ -77,6 +77,12 @@ void atolla_source_free(AtollaSource source);
 AtollaSourceState atolla_source_state(AtollaSource source);
 
 /**
+ * If source is in error state, returns a pointer to a human readable error message.
+ * If source is not in error state, returns null.
+ */
+const char* atolla_source_error_msg(AtollaSource source);
+
+/**
  * Determines how many frames have to be sent to the sink to fill its buffer
  * at the instant of calling the function.
  *

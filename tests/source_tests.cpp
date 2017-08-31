@@ -96,6 +96,34 @@ static void teardown_source(AtollaSource *source, UdpSocket* sink_socket, MsgBui
     msg_builder_free(builder);
 }
 
+static void test_source_with_sink_unavailable(void **state)
+{
+    AtollaSource source;
+    UdpSocket sink_socket;
+    MsgBuilder builder;
+
+    setup_waiting_source(&source, &sink_socket, &builder);
+
+    // First it should be waiting
+    AtollaSourceState source_state = atolla_source_state(source);
+    assert_int_equal(ATOLLA_SOURCE_STATE_WAITING, source_state);
+
+    time_sleep(disconnect_timeout_ms / 2);
+
+    // Still should be
+    source_state = atolla_source_state(source);
+    assert_int_equal(ATOLLA_SOURCE_STATE_WAITING, source_state);
+
+    time_sleep(disconnect_timeout_ms / 2);
+
+    // Now should be error
+    source_state = atolla_source_state(source);
+    assert_int_equal(ATOLLA_SOURCE_STATE_ERROR, source_state);
+    assert_ptr_not_equal(NULL, atolla_source_error_msg(source));
+
+    teardown_source(&source, &sink_socket, &builder);
+}
+
 static void test_error_transition(void **state)
 {
     AtollaSource source;
@@ -112,6 +140,7 @@ static void test_error_transition(void **state)
     // now, the source should be in error state
     AtollaSourceState source_state = atolla_source_state(source);
     assert_int_equal(ATOLLA_SOURCE_STATE_ERROR, source_state);
+    assert_ptr_not_equal(NULL, atolla_source_error_msg(source));
 
     teardown_source(&source, &sink_socket, &builder);
 }
@@ -248,6 +277,7 @@ static void test_borrow_packet_loss(void **state)
 int main(void)
 {
     const struct CMUnitTest tests[] = {
+        cmocka_unit_test(test_source_with_sink_unavailable),
         cmocka_unit_test(test_error_transition),
         cmocka_unit_test(test_blocking),
         cmocka_unit_test(test_frame_lag),
