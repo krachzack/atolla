@@ -54,6 +54,19 @@ UdpSocketResult udp_socket_set_receiver(UdpSocket* socket, const char* hostname,
     assert(false); // Not implemented yet
 }
 
+UdpSocketResult udp_socket_set_endpoint(UdpSocket* socket, UdpEndpoint* endpoint)
+{
+    if(endpoint) {
+        receiver = endpoint->address;
+        receiver_port = endpoint->port;
+        has_receiver = true;
+    } else {
+        has_receiver = false;
+    }
+    
+    return make_success_result();
+}
+
 UdpSocketResult udp_socket_send(UdpSocket* socket, void* packet_data, size_t packet_data_len)
 {
     assert(packet_data != NULL);
@@ -81,38 +94,24 @@ UdpSocketResult udp_socket_send(UdpSocket* socket, void* packet_data, size_t pac
     return make_success_result();
 }
 
-/**
- * TODO document
- *
- * then_respond makes that sends always send to the partner last received from.
- *
- * The result of the operation will be signalled with the returned UdpSocketResult
- * structure. A successful completion will be signalled with the <code>code</code>
- * property being set to <code>UDP_SOCKET_OK</code>, which is equivalent to
- * the integer <code>0</code>. If the operation failed, the error will be
- * specified with <code>code</code> being set to any of the
- * <code>UDP_SOCKET_ERR_*</code> values and the <code>msg</code> property pointing
- * to a human readable error message.
- */
-UdpSocketResult udp_socket_receive(UdpSocket* socket, void* packet_data, size_t max_packet_size, size_t* received_byte_count, bool then_respond)
+ UdpSocketResult udp_socket_receive_from(UdpSocket* socket, void* packet_buffer, size_t packet_buffer_capacity, size_t* received_byte_count, UdpEndpoint* sender)
 {
-    assert(packet_data != NULL);
-    assert(max_packet_size > 0);
+    assert(packet_buffer != NULL);
+    assert(packet_buffer_capacity > 0);
 
     int packetSize = Udp.parsePacket();
     if (packetSize)
     {
-        int bytes_read = Udp.read((unsigned char*) packet_data, max_packet_size);
+        int bytes_read = Udp.read((unsigned char*) packet_buffer, packet_buffer_capacity);
 
         if(received_byte_count)
         {
             *received_byte_count = bytes_read;
         }
 
-        if(then_respond) {
-            has_receiver = true;
-            receiver = Udp.remoteIP();
-            receiver_port = Udp.remotePort();
+        if(sender) {
+            sender->address = Udp.remoteIP();
+            sender->port = Udp.remotePort();
         }
 
         return make_success_result();

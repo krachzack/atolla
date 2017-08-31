@@ -1,6 +1,10 @@
 #ifndef MSG_ITER_H
 #define MSG_ITER_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "atolla/primitives.h"
 #include "msg/type.h"
 #include "mem/block.h"
@@ -133,5 +137,9 @@ uint16_t msg_iter_fail_offending_msg_id(MsgIter* iter);
  * from MSG_TYPE_FAIL.
  */
 uint8_t msg_iter_fail_error_code(MsgIter* iter);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // MSG_ITER_H

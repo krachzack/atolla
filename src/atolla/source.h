@@ -41,7 +41,7 @@ typedef enum AtollaSourceState AtollaSourceState;
  */
 struct AtollaSource
 {
-    void* private;
+    void* internal;
 };
 typedef struct AtollaSource AtollaSource;
 

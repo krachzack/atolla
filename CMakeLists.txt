@@ -115,15 +115,15 @@ set(
     src/udp_socket/udp_socket.h
 )
 set(LIBRARY_IMPLS
-    src/atolla/sink.c
-    src/atolla/source.c
+    src/atolla/sink.cpp
+    src/atolla/source.cpp
     src/mem/block.c
     src/mem/ring.c
     src/msg/builder.c
     src/msg/iter.c
-    src/udp_socket/udp_socket_base.c
-    src/udp_socket/udp_socket_bsdlike.c
-    src/udp_socket/udp_socket_results_internal.c
+    src/udp_socket/udp_socket_base.cpp
+    src/udp_socket/udp_socket_bsdlike.cpp
+    src/udp_socket/udp_socket_results_internal.cpp
     src/udp_socket/udp_socket_wifiudp.cpp
     src/time/mach_gettime.c
     src/time/now.c

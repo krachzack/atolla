@@ -1,6 +1,10 @@
 #ifndef MSG_BUILD_H
 #define MSG_BUILD_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "mem/block.h"
 #include "atolla/primitives.h"
 
@@ -99,5 +103,8 @@ MemBlock* msg_builder_fail(
     uint8_t error_code
 );
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif // MSG_BUILD_H

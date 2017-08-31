@@ -90,7 +90,7 @@ static AtollaSourcePrivate* source_private_make(const AtollaSourceSpec* spec)
 
 void atolla_source_free(AtollaSource source_handle)
 {
-    AtollaSourcePrivate* source = (AtollaSourcePrivate*) source_handle.private;
+    AtollaSourcePrivate* source = (AtollaSourcePrivate*) source_handle.internal;
 
     UdpSocketResult result = udp_socket_free(&source->sock);
     assert(result.code == UDP_SOCKET_OK);
@@ -100,7 +100,7 @@ void atolla_source_free(AtollaSource source_handle)
 
 AtollaSourceState atolla_source_state(AtollaSource source_handle)
 {
-    AtollaSourcePrivate* source = (AtollaSourcePrivate*) source_handle.private;
+    AtollaSourcePrivate* source = (AtollaSourcePrivate*) source_handle.internal;
 
     source_update(source);
 
@@ -109,7 +109,7 @@ AtollaSourceState atolla_source_state(AtollaSource source_handle)
 
 int atolla_source_frame_lag(AtollaSource source_handle)
 {
-    AtollaSourcePrivate* source = (AtollaSourcePrivate*) source_handle.private;
+    AtollaSourcePrivate* source = (AtollaSourcePrivate*) source_handle.internal;
 
     source_update(source);
 
@@ -148,7 +148,7 @@ int atolla_source_frame_lag(AtollaSource source_handle)
  */
 bool atolla_source_put(AtollaSource source_handle, void* frame, size_t frame_len)
 {
-    AtollaSourcePrivate* source = (AtollaSourcePrivate*) source_handle.private;
+    AtollaSourcePrivate* source = (AtollaSourcePrivate*) source_handle.internal;
 
     source_update(source);
 

@@ -86,7 +86,7 @@ static AtollaSinkPrivate* sink_private_make(const AtollaSinkSpec* spec)
     assert((spec->lights_count * color_channel_count + 10) < recv_buf_len);
 
     AtollaSinkPrivate* sink = (AtollaSinkPrivate*) malloc(sizeof(AtollaSinkPrivate));
-    assert(sink);
+    assert(sink != NULL);
 
     // Initialize everything to zero
     memset(sink, 0, sizeof(AtollaSinkPrivate));
@@ -155,7 +155,8 @@ bool atolla_sink_get(AtollaSink sink_handle, void* frame, size_t frame_len)
                 if(ok) {
                     sink->time_origin += sink->frame_duration_ms;
                 } else {
-                    // TODO Experiencing lag, maybe tell the source to catch up
+                    // TODO Experiencing lag, maybe disconnect at this point, not when trying to receive
+                    //      this way the unfinished buffer can finish showing
                     break;
                 }
             }
@@ -333,6 +334,8 @@ static void sink_send_fail(AtollaSinkPrivate* sink, uint16_t offending_msg_id, u
 static void sink_drop_borrow(AtollaSinkPrivate* sink)
 {
     sink->state = ATOLLA_SINK_STATE_OPEN;
+    // Disconnect socket and accept lends from other devices
+    udp_socket_set_endpoint(&sink->socket, NULL);
 }
 
 static int bounded_diff(int from, int to, int cap) {

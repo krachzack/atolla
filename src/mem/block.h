@@ -1,6 +1,10 @@
 #ifndef MSG_BLOCK_H
 #define MSG_BLOCK_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "atolla/primitives.h"
 
 /**
@@ -55,5 +59,9 @@ void mem_block_resize(MemBlock* block, size_t new_size);
  * structure itself is managed by the module user.
  */
 void mem_block_free(MemBlock* block);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // MSG_BLOCK_H
