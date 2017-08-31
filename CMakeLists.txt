@@ -77,17 +77,23 @@ endif()
 #
 # Set include directories
 #
-include_directories(include src ${CMAKE_CURRENT_BINARY_DIR}/include ${CMOCKA_INCLUDE})
+include_directories(src ${CMOCKA_INCLUDE})
 
 #
-# Set source files
+# Copy public headers to build directory
 #
+configure_file(src/atolla/primitives.h ${CMAKE_CURRENT_BINARY_DIR}/include/atolla/primitives.h COPYONLY)
+configure_file(src/atolla/sink.h ${CMAKE_CURRENT_BINARY_DIR}/include/atolla/sink.h COPYONLY)
+configure_file(src/atolla/source.h ${CMAKE_CURRENT_BINARY_DIR}/include/atolla/source.h COPYONLY)
 
+#
+# Define source files for building
+#
 set(
     LIBRARY_HEADERS
-    include/atolla/primitives.h
-    include/atolla/sink.h
-    include/atolla/source.h
+    src/atolla/primitives.h
+    src/atolla/sink.h
+    src/atolla/source.h
     src/atolla/error_codes.h
     src/mem/block.h
     src/mem/ring.h
