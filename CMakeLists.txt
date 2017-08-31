@@ -1,6 +1,8 @@
 cmake_minimum_required (VERSION 2.6)
 project (Atolla)
 
+find_package(OpenGL REQUIRED)
+
 #
 # Specify cmake module path
 #
@@ -136,18 +138,27 @@ set(LIBRARY_SRC ${LIBRARY_HEADERS} ${LIBRARY_IMPLS})
 add_library(atolla STATIC ${LIBRARY_SRC})
 add_library(atolla.${ATOLLA_VERSION_MAJOR}.${ATOLLA_VERSION_MINOR}.${ATOLLA_VERSION_PATCH} SHARED ${LIBRARY_SRC})
 
-add_executable(example_yellow examples/01-yellow.c)
-add_executable(example_sine   examples/02-sine.c)
-add_executable(example_remote examples/03-remote.c)
+if(OPENGL_FOUND)
+    # Add GLFW for sink example
+    set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
+    set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+    set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+    add_subdirectory(vendor/glfw)
 
+    add_executable(example_sink examples/01-sink.c)
+    include_directories(${OPENGL_INCLUDE_DIR})
+    target_link_libraries(example_sink ${OPENGL_gl_LIBRARY})
+    target_link_libraries(example_sink glfw atolla)
+endif()
+
+add_executable(example_yellow examples/02-yellow.c)
 target_link_libraries(example_yellow atolla)
-add_custom_target(run_example_yellow DEPENDS example_yellow COMMAND ../build/example_yellow)
 
+add_executable(example_sine   examples/03-sine.c)
 target_link_libraries(example_sine atolla)
-add_custom_target(run_example_sine DEPENDS example_sine COMMAND ../build/example_sine)
 
-target_link_libraries(example_remote atolla)
-add_custom_target(run_example_remote DEPENDS example_remote COMMAND ../build/example_remote)
+add_executable(example_complementary   examples/04-complementary.c)
+target_link_libraries(example_complementary atolla)
 
 add_cmocka_test(mem_ring_tests       tests/mem_ring_tests.c       ${LIBRARY_SRC})
 add_cmocka_test(msg_builder_tests    tests/msg_builder_tests.c    ${LIBRARY_SRC})

@@ -6,6 +6,7 @@ function configure {
   echo "${CYAN}Downloading dependencies...${COLOR_RESET}"
 
   download_and_build_cmocka
+  download_glfw
 }
 
 function download_and_build_cmocka {
@@ -30,6 +31,13 @@ function download_and_build_cmocka {
     echo "${RED}Test framework cannot be downloaded - Exiting...${COLOR_RESET}"
     exit
   fi
+}
+
+function download_glfw {
+  mkdir -p vendor
+  cd vendor
+  git clone https://github.com/glfw/glfw.git
+  cd ..
 }
 
 # COLORS
