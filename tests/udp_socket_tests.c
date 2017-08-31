@@ -158,6 +158,27 @@ static void test_send_with_no_receiver(void** state)
     assert_int_equal(result.code, UDP_SOCKET_OK);
 }
 
+static void test_disconnect(void** state)
+{
+    UdpSocket socket;
+    UdpSocketResult result = udp_socket_init(&socket);
+
+    assert_int_equal(result.code, UDP_SOCKET_OK);
+    int msg = 42;
+
+    udp_socket_set_receiver(&socket, "127.0.0.1", 10000);
+    result = udp_socket_send(&socket, &msg, sizeof(msg));
+    assert_int_equal(result.code, UDP_SOCKET_OK);
+
+    udp_socket_set_endpoint(&socket, NULL);
+    result = udp_socket_send(&socket, &msg, sizeof(msg));
+    assert_int_equal(result.code, UDP_SOCKET_ERR_NO_RECEIVER);
+
+    result = udp_socket_free(&socket);
+    assert_int_equal(result.code, UDP_SOCKET_OK);
+}
+
+
 int main(int argc, char* argv[])
 {
     const struct CMUnitTest tests[] = {
@@ -168,7 +189,8 @@ int main(int argc, char* argv[])
         cmocka_unit_test(test_connect_valid_hostname),
         cmocka_unit_test(test_connect_invalid_hostname),
         cmocka_unit_test(test_send_and_receive),
-        cmocka_unit_test(test_send_with_no_receiver)
+        cmocka_unit_test(test_send_with_no_receiver),
+        cmocka_unit_test(test_disconnect)
     };
     return cmocka_run_group_tests(tests, NULL, NULL);
 }

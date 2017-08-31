@@ -295,6 +295,37 @@ UdpSocketResult udp_socket_set_receiver(UdpSocket* socket, const char* hostname,
     return make_success_result();
 }
 
+UdpSocketResult udp_socket_set_endpoint(UdpSocket* socket, UdpEndpoint* endpoint)
+{
+    int error;
+    if(endpoint) {
+        error = connect(
+            socket->socket_handle,
+            (struct sockaddr*) &endpoint->addr,
+            endpoint->addr_len
+        );
+    } else {
+        // When null pointer given, disconnect
+        struct sockaddr addr;
+        memset(&addr, 0, sizeof(addr));
+        addr.sa_family = AF_UNSPEC;
+        error = connect(
+            socket->socket_handle,
+            &addr,
+            sizeof(addr)
+        );
+    }
+
+    if(error == 0) {
+        return make_success_result();
+    } else {
+        return make_err_result(
+            UDP_SOCKET_ERR_CONNECT_FAILED,
+            strerror(errno)
+        );
+    }
+}
+
 UdpSocketResult udp_socket_send(UdpSocket* socket, void* packet_data, size_t packet_data_len)
 {
     assert(packet_data != NULL);
@@ -357,26 +388,35 @@ UdpSocketResult udp_socket_send(UdpSocket* socket, void* packet_data, size_t pac
     return make_success_result();
 }
 
-UdpSocketResult udp_socket_receive(UdpSocket* socket, void* packet_data, size_t max_packet_size, size_t* received_byte_count, bool then_respond)
+UdpSocketResult udp_socket_receive_from(UdpSocket* socket, void* packet_data, size_t max_packet_size, size_t* received_byte_count, UdpEndpoint* sender)
 {
     assert(packet_data != NULL);
     assert(max_packet_size > 0);
 
-    #if defined(_WIN32) || defined(WIN32)
-        typedef int socklen_t;
-    #endif
+    ssize_t received_bytes;
 
-    struct sockaddr_storage from;
-    socklen_t from_len = sizeof(from);
+    if(sender) {
+        // Initialize to capacity for recvfrom
+        sender->addr_len = sizeof(sender->addr);
 
-    ssize_t received_bytes = recvfrom(
-        socket->socket_handle,
-        (char*)packet_data,
-        max_packet_size,
-        0,
-        (struct sockaddr*)&from,
-        &from_len
-    );
+        received_bytes = recvfrom(
+            socket->socket_handle,
+            (char*) packet_data,
+            max_packet_size,
+            0,
+            (struct sockaddr*) &sender->addr,
+            &sender->addr_len
+        );
+    } else {
+        received_bytes = recvfrom(
+            socket->socket_handle,
+            (char*) packet_data,
+            max_packet_size,
+            0,
+            NULL,
+            NULL
+        );
+    }
 
     if(received_bytes <= 0)
     {
@@ -405,20 +445,6 @@ UdpSocketResult udp_socket_receive(UdpSocket* socket, void* packet_data, size_t 
         if(received_byte_count)
         {
             *received_byte_count = (size_t) received_bytes;
-        }
-
-        // REVIEW should the sender address be made available to the caller instead of this thing?
-        if(then_respond)
-        {
-            assert(from.ss_family == AF_INET);
-
-            int ret = connect(
-                socket->socket_handle,
-                (const struct sockaddr*) &from,
-                from_len
-            );
-
-            assert(ret == 0);
         }
 
         return make_success_result();

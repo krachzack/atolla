@@ -77,6 +77,27 @@ struct UdpSocketResult
 };
 typedef struct UdpSocketResult UdpSocketResult;
 
+#if defined(ARDUINO_ARCH_ESP8266)
+    #include <Arduino.h>
+    struct UdpEndpoint {
+        IPAddress address;
+        int port;
+    };
+#else
+    #if defined(_WIN32) || defined(WIN32)
+        #pragma comment( lib, "wsock32.lib" )
+        #include <winsock2.h>
+        typedef int socklen_t;
+    #else
+        #include <sys/socket.h>
+    #endif
+    struct UdpEndpoint {
+        struct sockaddr_storage addr;
+        socklen_t addr_len;
+    };
+#endif
+typedef struct UdpEndpoint UdpEndpoint;
+
 /**
  * Initializes the given UdpSocket data structure to reference a UDP socket on
  * a free port selected by the operating system.
@@ -179,6 +200,20 @@ UdpSocketResult udp_socket_free(UdpSocket* socket);
 UdpSocketResult udp_socket_set_receiver(UdpSocket* socket, const char* hostname, unsigned short port);
 
 /**
+ * Sets the receiving hostname and port for subsequent calls to
+ * <code>udp_socket_send</code>.
+ *
+ * The result of the operation will be signalled with the returned UdpSocketResult
+ * structure. A successful completion will be signalled with the <code>code</code>
+ * property being set to <code>UDP_SOCKET_OK</code>, which is equivalent to
+ * the integer <code>0</code>. If the operation failed, the error will be
+ * specified with <code>code</code> being set to any of the
+ * <code>UDP_SOCKET_ERR_*</code> values and the <code>msg</code> property pointing
+ * to a human readable error message.
+ */
+ UdpSocketResult udp_socket_set_endpoint(UdpSocket* socket, UdpEndpoint* endpoint);
+
+/**
  * Sends the packet given using the <code>packet_data</code> pointer and the byte
  * length in <code>packet_data_len</code> to the receiver set with the last
  * successful call to <code>udp_socket_set_receiver</code>. The data pointer
@@ -199,6 +234,26 @@ UdpSocketResult udp_socket_set_receiver(UdpSocket* socket, const char* hostname,
 UdpSocketResult udp_socket_send(UdpSocket* socket, void* packet_data, size_t packet_data_len);
 
 /**
+ * Sends the packet given using the <code>packet_data</code> pointer and the byte
+ * length in <code>packet_data_len</code> to the receiver set with the last
+ * successful call to <code>udp_socket_set_receiver</code>. The data pointer
+ * must always point to a valid address space and packet_data_len must be
+ * greater than zero.
+ *
+ * The call does not block. That means that upon return, the UDP packet is
+ * enqueued and will be sent later in the background.
+ *
+ * The result of the operation will be signalled with the returned UdpSocketResult
+ * structure. A successful completion will be signalled with the <code>code</code>
+ * property being set to <code>UDP_SOCKET_OK</code>, which is equivalent to
+ * the integer <code>0</code>. If the operation failed, the error will be
+ * specified with <code>code</code> being set to any of the
+ * <code>UDP_SOCKET_ERR_*</code> values and the <code>msg</code> property pointing
+ * to a human readable error message.
+ */
+ UdpSocketResult udp_socket_send_to(UdpSocket* socket, void* packet_data, size_t packet_data_len, UdpEndpoint receiver);
+
+/**
  * TODO document
  *
  * then_respond makes that sends always send to the partner last received from.
@@ -211,7 +266,9 @@ UdpSocketResult udp_socket_send(UdpSocket* socket, void* packet_data, size_t pac
  * <code>UDP_SOCKET_ERR_*</code> values and the <code>msg</code> property pointing
  * to a human readable error message.
  */
-UdpSocketResult udp_socket_receive(UdpSocket* socket, void* packet_buffer, size_t packet_buffer_capacity, size_t* received_byte_count, bool then_respond);
+UdpSocketResult udp_socket_receive_from(UdpSocket* socket, void* packet_buffer, size_t packet_buffer_capacity, size_t* received_byte_count, UdpEndpoint* sender);
+
+UdpSocketResult udp_socket_receive(UdpSocket* socket, void* packet_buffer, size_t packet_buffer_capacity, size_t* received_byte_count, bool set_sender_as_receiver);
 
 #ifdef __cplusplus
 }
