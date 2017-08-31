@@ -1,10 +1,12 @@
 #include "time/now.h"
 #include "time/sleep.h"
 
-#include <stdarg.h>
-#include <stddef.h>
-#include <setjmp.h>
-#include <cmocka.h>
+extern "C" {
+    #include <stdarg.h>
+    #include <stddef.h>
+    #include <setjmp.h>
+    #include <cmocka.h>
+}
 
 #include <stdio.h>
 

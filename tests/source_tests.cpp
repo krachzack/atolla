@@ -6,10 +6,12 @@
 #include "time/now.h"
 #include "test/assert.h"
 
-#include <stdarg.h>
-#include <stddef.h>
-#include <setjmp.h>
-#include <cmocka.h>
+extern "C" {
+    #include <stdarg.h>
+    #include <stddef.h>
+    #include <setjmp.h>
+    #include <cmocka.h>
+}
 
 /**
  * A time in milliseconds to wait in order to wait for data to be sent through local

@@ -2,10 +2,12 @@
 #include "atolla/sink.h"
 #include "time/sleep.h"
 
-#include <stdarg.h>
-#include <stddef.h>
-#include <setjmp.h>
-#include <cmocka.h>
+extern "C" {
+    #include <stdarg.h>
+    #include <stddef.h>
+    #include <setjmp.h>
+    #include <cmocka.h>
+}
 
 const int port = 10001;
 const int frame_duration_ms = 30;

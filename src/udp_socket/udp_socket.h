@@ -7,10 +7,6 @@
 #ifndef _udp_socket_h_
 #define _udp_socket_h_
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include <stdbool.h>
 #include <stddef.h> // for size_t
 
@@ -250,9 +246,5 @@ UdpSocketResult udp_socket_send(UdpSocket* socket, void* packet_data, size_t pac
 UdpSocketResult udp_socket_receive_from(UdpSocket* socket, void* packet_buffer, size_t packet_buffer_capacity, size_t* received_byte_count, UdpEndpoint* sender);
 
 UdpSocketResult udp_socket_receive(UdpSocket* socket, void* packet_buffer, size_t packet_buffer_capacity, size_t* received_byte_count, bool set_sender_as_receiver);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif /* _udp_socket_h_ */

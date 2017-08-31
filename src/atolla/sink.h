@@ -1,10 +1,6 @@
 #ifndef ATOLLA_SINK_H
 #define ATOLLA_SINK_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include "atolla/primitives.h"
 
 enum AtollaSinkState
@@ -50,9 +46,5 @@ AtollaSinkState atolla_sink_state(AtollaSink sink);
  * If returns false, no frame available yet.
  */
 bool atolla_sink_get(AtollaSink sink, void* frame, size_t frame_len);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif // ATOLLA_SINK_H

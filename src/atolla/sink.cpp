@@ -1,3 +1,6 @@
+
+// FIXME change udp_socket so it does not need c++ linkage
+
 #include "atolla/sink.h"
 #include "atolla/error_codes.h"
 #include "mem/ring.h"

@@ -5,10 +5,12 @@
 #include "time/sleep.h"
 #include "time/now.h"
 
-#include <stdarg.h>
-#include <stddef.h>
-#include <setjmp.h>
-#include <cmocka.h>
+extern "C" {
+    #include <stdarg.h>
+    #include <stddef.h>
+    #include <setjmp.h>
+    #include <cmocka.h>
+}
 
 static const int port = 61489;
 static const uint8_t frame_length = 17;

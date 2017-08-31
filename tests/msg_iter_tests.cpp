@@ -1,9 +1,11 @@
 #include "msg/iter.h"
 
-#include <stdarg.h>
-#include <stddef.h>
-#include <setjmp.h>
-#include <cmocka.h>
+extern "C" {
+    #include <stdarg.h>
+    #include <stddef.h>
+    #include <setjmp.h>
+    #include <cmocka.h>
+}
 
 static uint8_t borrow_and_enqueue_msg_buf[] = {
   0,   // message type 0 = borrow

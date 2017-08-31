@@ -1,8 +1,9 @@
 #include <stdarg.h>
 #include <stddef.h>
 #include <setjmp.h>
-#include <cmocka.h>
-
+extern "C" {
+    #include <cmocka.h>
+}
 #include "udp_socket/udp_socket.h"
 #include "time/sleep.h"
 
