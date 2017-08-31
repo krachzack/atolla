@@ -10,7 +10,7 @@
 
 static const size_t recv_buf_len = 3 + 65537;
 static const int retry_timeout_ms_default = 10;
-static const int disconnect_timeout_ms_default = retry_timeout_ms_default * 50;
+static const int disconnect_timeout_ms_default = 500;
 static const int max_buffered_frames_default = 16;
 
 struct AtollaSourcePrivate
