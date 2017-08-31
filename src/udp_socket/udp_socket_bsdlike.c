@@ -362,9 +362,9 @@ UdpSocketResult udp_socket_receive(UdpSocket* socket, void* packet_data, size_t 
     assert(packet_data != NULL);
     assert(max_packet_size > 0);
 
-#ifdef HAVE_WINSOCK2
-    typedef int socklen_t;
-#endif
+    #if defined(_WIN32) || defined(WIN32)
+        typedef int socklen_t;
+    #endif
 
     struct sockaddr_storage from;
     socklen_t from_len = sizeof(from);
