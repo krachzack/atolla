@@ -1,7 +1,14 @@
-# Atolla – Open Source Lighting
-Atolla is an open hardware project for makers to build exciting network programmable lighting projects in little time.
+# atolla – Open Source Lighting
+*atolla* is an open hardware project for makers to build exciting network programmable lighting projects in little time.
 
 This repository provides a reference implementation of the UDP-based protocol used for communication of light information.
+
+## Requirements
+For building static and dynamic libraries, tests and examples, CMake is required.
+
+Alternatively, if testing and examples are not required, the protocol can also be integrated into another project by adding the sources in `src` to the target project.
+
+*atolla* is tested on Linux, Mac OS X and the ESP8266 WiFi chip. Windows, though not officially supported yet, might already work. Full Windows support will land in a future version.
 
 ## Building
 1. Clone the repository with `git clone https://github.com/krachzack/atolla.git`.
