@@ -12,7 +12,7 @@ extern "C" {
 
 static void test_delta(void **state)
 {
-    const int tolerance = 5; // 5ms more or less is ok
+    const int tolerance = 10; // 5ms more or less is ok
     const int chosen_delta = 200;
 
     int time_before = time_now();

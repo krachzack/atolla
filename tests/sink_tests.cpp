@@ -74,9 +74,14 @@ static void test_fill_sink_buf(void **state)
 
         MemBlock* msg = msg_builder_enqueue(&builder, i, frame, frame_len);
         UdpSocketResult res = udp_socket_send(&source_sock, msg->data, msg->size);
-        assert_int_equal(UDP_SOCKET_OK, res.code);
-
-        atolla_sink_state(sink); // this just makes sure the sink gets the updates
+        if(res.code != UDP_SOCKET_OK)
+        {
+            --i;
+        }
+        else
+        {
+            atolla_sink_state(sink); // this just makes sure the sink gets the updates
+        }
     }
 
     const int origin_time = time_now();
