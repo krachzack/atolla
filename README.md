@@ -13,7 +13,7 @@ This repository provides a reference implementation of the UDP-based protocol us
 In the top level directory of the repository, run `./test`.
 
 ## Examples
-Run `example_sink` to open a local sink. Next, run any of `example_sine`, `example_yellow` or ``example_complementary`
+Run `example_sink` to open a local sink. Next, run any of `example_sine`, `example_yellow` or `example_complementary`
 with `example_sink` still running and observe the results. Source code for the examples is located in the examples
 directory. The examples link against a atolla as a static library.
 
