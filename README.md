@@ -18,7 +18,7 @@ with `example_sink` still running and observe the results. Source code for the e
 directory. The examples link against a atolla as a static library.
 
 ## Atolla Protocol
-[`protocol/doc/Atolla Protocol.md`](doc/Atolla%20Protocol.md) provides a desription of the implemented
+[`doc/Atolla Protocol.md`](doc/Atolla%20Protocol.md) provides a desription of the implemented
 protocol.
 
 ## Changelog
