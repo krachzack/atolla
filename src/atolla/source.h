@@ -41,11 +41,36 @@ struct AtollaSource
 };
 typedef struct AtollaSource AtollaSource;
 
+/**
+ * Provides initialization parameters for a source that can be passed to
+ * atolla_source_make.
+ */
 struct AtollaSourceSpec
 {
+    /**
+     * IP address or hostname of the sink to connect the source to.
+     */
     const char* sink_hostname;
+    /**
+     * UDP port that the sink running on sink_hostname is expected to run on.
+     */
     int sink_port;
+    /**
+     * Time in milliseconds that one frame remains valid in the sink. E.g. a
+     * frame duration of 17ms implies a refresh rate of 1000ms/17ms = 59 frames
+     * per second on the sink.
+     *
+     * Note that the sink might refuse the borrow request if this duration is
+     * too short.
+     */
     int frame_duration_ms;
+    /**
+     * Determines how many frames should be sent to the sink in advance and
+     * stored in a buffer for later use. This serves to compensate for spikes in
+     * package throughput and makes the communication more stable.
+     *
+     * A value of zero lets the implementation pick a default value.
+     */
     int max_buffered_frames;
     /**
      * Holds the time in milliseconds after which a new borrow message is
@@ -65,6 +90,18 @@ struct AtollaSourceSpec
 };
 typedef struct AtollaSourceSpec AtollaSourceSpec;
 
+/**
+ * Creates a new atolla source using the parameters in the given spec struct.
+ *
+ * Upon completion, the source has initiated the borrowing process and will
+ * be in state ATOLLA_SOURCE_STATE_WAITING.
+ *
+ * After a while, the source will enter either ATOLLA_SOURCE_STATE_OPEN if the
+ * borrowing process was successful, or enter ATOLLA_SOURCE_STATE_ERROR if the
+ * source does not exist or reported an error.
+ *
+ * TODO add option to block until connected
+ */
 AtollaSource atolla_source_make(const AtollaSourceSpec* spec);
 
 /**
@@ -74,6 +111,19 @@ AtollaSource atolla_source_make(const AtollaSourceSpec* spec);
  */
 void atolla_source_free(AtollaSource source);
 
+/**
+ * Gets the current state of the source based on the connection to the sink.
+ *
+ * ATOLLA_SOURCE_STATE_WAITING is returned when the source is trying to connect
+ * to the sink after calling atolla_source_make.
+ *
+ * ATOLLA_SOURCE_STATE_OPEN is returned when the source has an active connection
+ * to the sink.
+ *
+ * ATOLLA_SOURCE_STATE_ERROR is returned when either the borrowing process failed,
+ * the sink reported an unrecoverable error or if the connection to the sink was
+ * lost.
+ */
 AtollaSourceState atolla_source_state(AtollaSource source);
 
 /**

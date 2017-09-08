@@ -29,6 +29,11 @@ static const size_t color_channel_count = 3;
 static const size_t pending_frames_capacity = 128;
 /** After drop_timeout milliseconds of not receiving anything, the source is assumed to have shut down the connection */
 static const int drop_timeout = 1500;
+/**
+ * If the frame duration sent with the borrow packet implies a shorter frame duration than this,
+ * report an unrecoverable error to the sink.
+ */
+static const int frame_length_ms_min = 10;
 
 struct AtollaSinkPrivate
 {
@@ -251,13 +256,21 @@ static void sink_handle_borrow(AtollaSinkPrivate* sink, uint16_t msg_id, int fra
     }
 
     assert(buffer_length >= 0);
-    assert(frame_length_ms >= 0);
 
     // Create the frame buffer and initialize it to zero
     // Consider it full by setting size to capacity
     size_t required_frame_buf_size = buffer_length * (sink->lights_count * color_channel_count);
     
-    if(required_frame_buf_size <= sink->pending_frames.buf.capacity) {
+    if(required_frame_buf_size > sink->pending_frames.buf.capacity)
+    {
+        sink_send_fail(sink, msg_id, ATOLLA_ERROR_CODE_REQUESTED_BUFFER_TOO_LARGE);
+    }
+    else if(frame_length_ms < frame_length_ms_min)
+    {
+        sink_send_fail(sink, msg_id, ATOLLA_ERROR_CODE_REQUESTED_FRAME_DURATION_TOO_SHORT);
+    }
+    else
+    {
         sink->frame_duration_ms = frame_length_ms;
         sink->state = ATOLLA_SINK_STATE_LENT;
         sink->time_origin = -1;
@@ -266,8 +279,6 @@ static void sink_handle_borrow(AtollaSinkPrivate* sink, uint16_t msg_id, int fra
     
         // TODO save source addreess
         sink_send_lent(sink);
-    } else {
-        sink_send_fail(sink, msg_id, ATOLLA_ERROR_CODE_REQUESTED_BUFFER_TOO_LARGE);
     }
 }
 

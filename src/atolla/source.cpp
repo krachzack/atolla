@@ -176,12 +176,6 @@ int atolla_source_put_ready_timeout(AtollaSource source_handle)
     }    
 }
 
-/**
- * Tries to enqueue the given frame in the connected sink.
- *
- * The call might block for some time in order to wait for the device to catch
- * up displaying the previously sent frames.
- */
 bool atolla_source_put(AtollaSource source_handle, void* frame, size_t frame_len)
 {
     AtollaSourcePrivate* source = (AtollaSourcePrivate*) source_handle.internal;
@@ -263,7 +257,7 @@ static void source_manage_borrow_packet_loss(AtollaSourcePrivate* source)
         {
             // If no lent message was received after the disconnect timeout,
             // enter unrecoverable error state
-            source_fail(source, "Tried to lend the sink, but the attempt timed out.");
+            source_fail(source, "Tried to borrow the sink, but the attempt timed out.");
         }
         else if(time_since_last_borrow > source->retry_timeout_ms)
         {
@@ -299,6 +293,10 @@ static void source_iterate_recv_buf(AtollaSourcePrivate* source, size_t received
 
                     case ATOLLA_ERROR_CODE_REQUESTED_BUFFER_TOO_LARGE:
                         source_fail(source, "The sink does not have enough memory for a frame queue of the requested length.");
+                        break;
+
+                    case ATOLLA_ERROR_CODE_REQUESTED_FRAME_DURATION_TOO_SHORT:
+                        source_fail(source, "The sink cannot accomodate the reqest for the given frame duration because it is too short. Try a shorter frame duration.");
                         break;
 
                     default:
