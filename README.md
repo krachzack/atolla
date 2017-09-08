@@ -18,7 +18,7 @@ Alternatively, if testing and examples are not required, the protocol can also b
 5. `make` builds all of the above and creates the `build/include` directory with headers for use with the static library.
 
 ## Testing
-In `build` run either `make && make test`. Run `make test_pretty` for the same functionality but superior emoji support.
+In `build` run `make && make test`. Run `make test_pretty` for the same functionality but superior emoji support.
 
 ## Examples
 Run `example_sink` to open a local sink. Next, run any of `example_sine`, `example_yellow` or `example_complementary`
