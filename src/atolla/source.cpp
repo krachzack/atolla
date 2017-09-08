@@ -23,14 +23,14 @@ struct AtollaSourcePrivate
     MsgBuilder builder;
 
     int next_frame_idx;
-    int frame_length_ms;
+    int frame_duration_ms;
     int max_buffered_frames;
     int retry_timeout_ms;
     int disconnect_timeout_ms;
 
-    int first_borrow_time;
-    int last_borrow_time;
-    int last_frame_time;
+    unsigned int first_borrow_time;
+    unsigned int last_borrow_time;
+    unsigned int last_frame_time;
 
     const char* error_msg;
 };
@@ -80,7 +80,7 @@ static AtollaSourcePrivate* source_private_make(const AtollaSourceSpec* spec)
     source->state = ATOLLA_SOURCE_STATE_WAITING;
     source->recv_buf = malloc(recv_buf_len);
     source->next_frame_idx = 0;
-    source->frame_length_ms = spec->frame_duration_ms;
+    source->frame_duration_ms = spec->frame_duration_ms;
     source->max_buffered_frames = (spec->max_buffered_frames == 0) ? max_buffered_frames_default : spec->max_buffered_frames;
     source->retry_timeout_ms = (spec->retry_timeout_ms == 0) ? retry_timeout_ms_default : spec->retry_timeout_ms;
     source->disconnect_timeout_ms = (spec->disconnect_timeout_ms == 0) ? disconnect_timeout_ms_default : spec->disconnect_timeout_ms;
@@ -121,21 +121,18 @@ const char* atolla_source_error_msg(AtollaSource source_handle)
     }
 }
 
-int atolla_source_frame_lag(AtollaSource source_handle)
+int atolla_source_put_ready_count(AtollaSource source_handle)
 {
     AtollaSourcePrivate* source = (AtollaSourcePrivate*) source_handle.internal;
 
     source_update(source);
 
-    if(source->state == ATOLLA_SOURCE_STATE_ERROR)
+    if(source->state == ATOLLA_SOURCE_STATE_ERROR ||
+       source->state == ATOLLA_SOURCE_STATE_WAITING)
     {
-        // If in unrecoverable error state, report lagging behind 0 frames
+        // If in unrecoverable error state or not fully connected yet,
+        // report lagging behind 0 frames
         return 0;
-    }
-    else if(source->state == ATOLLA_SOURCE_STATE_WAITING)
-    {
-        // If not fully connected yet, report maximum lag
-        return source->max_buffered_frames;
     }
     else
     {
@@ -149,9 +146,34 @@ int atolla_source_frame_lag(AtollaSource source_handle)
         else
         {
             // Otherwise, calculate lag based on the time of the last enqueued frame
-            return (time_now() - source->last_frame_time) / source->frame_length_ms;
+            return (time_now() - source->last_frame_time) / source->frame_duration_ms;
         }
     }
+}
+
+int atolla_source_put_ready_timeout(AtollaSource source_handle)
+{
+    AtollaSourcePrivate* source = (AtollaSourcePrivate*) source_handle.internal;
+    
+    source_update(source);
+
+    if(source->state == ATOLLA_SOURCE_STATE_ERROR ||
+       source->state == ATOLLA_SOURCE_STATE_WAITING)
+    {
+        // If in unrecoverable error state or not fully connected yet,
+        // report lagging behind 0 frames
+        return -1;
+    }
+    else
+    {
+        // Otherwise calculate time until next frame can be put
+        unsigned int lag_ms = time_now() - source->last_frame_time;
+        if(lag_ms > source->frame_duration_ms) {
+            return 0;
+        } else {
+            return source->frame_duration_ms - lag_ms;
+        }
+    }    
 }
 
 /**
@@ -171,13 +193,12 @@ bool atolla_source_put(AtollaSource source_handle, void* frame, size_t frame_len
         return false;
     }
 
-    int now = time_now();
-    int next_frame_time = source->last_frame_time + source->frame_length_ms;
-    if(next_frame_time > now)
+    // If the receiving device has no space in the buffer to hold new frames,
+    // wait until the next frame was dequeued in the sink
+    int timeout = atolla_source_put_ready_timeout(source_handle);
+    if(timeout > 0)
     {
-        // If the receiving device has no space in the buffer to hold new frames,
-        // wait until the next frame was dequeued in the sink
-        time_sleep(next_frame_time - now);
+        time_sleep(timeout);
     }
 
     MemBlock* enqueue_msg = msg_builder_enqueue(&source->builder, source->next_frame_idx, frame, frame_len);
@@ -187,13 +208,13 @@ bool atolla_source_put(AtollaSource source_handle, void* frame, size_t frame_len
 
     if(source->last_frame_time == -1)
     {
-        source->last_frame_time = time_now() - (source->max_buffered_frames - 1) * source->frame_length_ms;
+        source->last_frame_time = time_now() - (source->max_buffered_frames - 1) * source->frame_duration_ms;
     }
     else
     {
         // Otherwise, advanace the last frame time, so we get closer to the point where no more
         // frame can be enqueued
-        source->last_frame_time += source->frame_length_ms;
+        source->last_frame_time += source->frame_duration_ms;
     }
 
     return true;
@@ -202,7 +223,7 @@ bool atolla_source_put(AtollaSource source_handle, void* frame, size_t frame_len
 static void source_send_borrow(AtollaSourcePrivate* source)
 {
     source->last_borrow_time = time_now();
-    MemBlock* borrow_msg = msg_builder_borrow(&source->builder, source->frame_length_ms, source->max_buffered_frames);
+    MemBlock* borrow_msg = msg_builder_borrow(&source->builder, source->frame_duration_ms, source->max_buffered_frames);
     udp_socket_send(&source->sock, borrow_msg->data, borrow_msg->size);
 }
 

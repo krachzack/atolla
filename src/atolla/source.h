@@ -83,21 +83,42 @@ AtollaSourceState atolla_source_state(AtollaSource source);
 const char* atolla_source_error_msg(AtollaSource source);
 
 /**
- * Determines how many frames have to be sent to the sink to fill its buffer
- * at the instant of calling the function.
+ * With a source in the open state, determines how many frames can be sent to
+ * the sink using atolla_source_put without blocking.
  *
- * If this function returns a non-zero value, the atolla_source_put function
- * will never block. In the zero case, the put function will halt until the
- * device is ready to receive the next frame.
+ * If in error or waiting state, returns zero.
+ *
+ * If this function returns a non-zero value, a call to atolla_source_put
+ * will not block. This also implies that atolla_source_put_ready_timeout will
+ * return 0 if atolla_source_put_ready_count is non-zero.
  */
-int atolla_source_frame_lag(AtollaSource source);
+int atolla_source_put_ready_count(AtollaSource source);
+
+/**
+ * With a source in the open state, returns an amount of milliseconds to wait after
+ * which atolla_source_put is guaranteed to be ready to immediately accept the next frame
+ * without blocking.
+ *
+ * If the source is in waiting or error state, returns -1 instead.
+ */
+int atolla_source_put_ready_timeout(AtollaSource source);
 
 /**
  * Tries to enqueue the given frame in the connected sink.
  *
  * The call might block for some time in order to wait for the device to catch
- * up displaying the previously sent frames. If atolla_source_frame_lag returns
- * a non-zero value, atolla_source_put is guaranteed not to wait.
+ * up displaying the previously sent frames. If atolla_source_put_ready_count returns
+ * a non-zero value, atolla_source_put is guaranteed not to wait. The same
+ * guarantee applies if atolla_source_put_ready_timeout returns zero.
+ *
+ * If the source is in open state, the frame will either immediately be sent,
+ * or, if max_buffered_frames are already enqueued in the connected sink,
+ * will block until atolla_source_put_ready_count returns a non-zero value and
+ * then send the frame. The function returns true in this case.
+ *
+ * If the source is in waiting state, that is, if the sink has not responded
+ * to the borrow request from the source yet, this function will return false
+ * and not try to enqueue the frame.
  */
 bool atolla_source_put(AtollaSource source, void* frame, size_t frame_len);
 

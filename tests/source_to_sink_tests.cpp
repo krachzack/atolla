@@ -71,7 +71,7 @@ static void test_stream_rising(void **state)
     assert_int_equal(ATOLLA_SINK_STATE_LENT, atolla_sink_state(sink));
     assert_int_equal(ATOLLA_SOURCE_STATE_OPEN, atolla_source_state(source));
 
-    const int buffered_frame_count = atolla_source_frame_lag(source);
+    const int buffered_frame_count = atolla_source_put_ready_count(source);
     for(uint8_t i = 0; i < buffered_frame_count; ++i)
     {
         uint8_t frame[3] = { i, i, i }; 

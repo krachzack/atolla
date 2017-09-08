@@ -145,6 +145,72 @@ static void test_error_transition(void **state)
     teardown_source(&source, &sink_socket, &builder);
 }
 
+static void test_timing(void **state)
+{
+    AtollaSource source;
+    UdpSocket sink_socket;
+    MsgBuilder builder;
+
+    setup_open_source(&source, &sink_socket, &builder);
+
+    int put_timeout = atolla_source_put_ready_timeout(source);
+    // With remote buffer empty, no timeout should be necessary
+    assert_int_equal(0, put_timeout);
+
+    // Initally, should report maximum amount of frames to send
+    int put_count = atolla_source_put_ready_count(source);
+    assert_int_equal(buffered_frame_count, put_timeout);
+
+    // This will remain unchanged until first put is sent, even
+    // when waiting
+    time_sleep(frame_ms * 10);
+    put_timeout = atolla_source_put_ready_timeout(source);
+    assert_int_equal(0, put_timeout);
+    put_count = atolla_source_put_ready_count(source);
+    assert_int_equal(buffered_frame_count, put_timeout);
+
+    // Now, enqueue, this will get the clock running
+    uint8_t frame[3] = { 255, 254, 253 };
+    atolla_source_put(source, frame, 3);
+
+    put_timeout = atolla_source_put_ready_timeout(source);
+    put_count = atolla_source_put_ready_count(source);
+    assert_int_equal(0, put_timeout);
+    assert_int_equal(buffered_frame_count-1, put_timeout);
+
+    for(int i = 1; i < buffered_frame_count; ++i)
+    {
+        atolla_source_put(source, frame, 3);
+        assert_int_equal(0, put_timeout);
+        assert_int_equal(buffered_frame_count-i+1, put_timeout);
+    }
+
+    put_timeout = atolla_source_put_ready_timeout(source);
+    put_count = atolla_source_put_ready_count(source);
+    assert_int_equal(0, put_count);
+    assert_true(put_timeout > 1);
+
+    time_sleep(put_timeout);
+    put_count = atolla_source_put_ready_count(source);
+    put_timeout = atolla_source_put_ready_timeout(source);
+    assert_int_equal(0, put_timeout);
+    assert_true(put_count > 0);
+
+    atolla_source_put(source, frame, 3);
+    assert_in_range(atolla_source_put_ready_timeout(source), frame_ms-2, frame_ms);
+    time_sleep(frame_ms/4);
+    put_timeout = atolla_source_put_ready_timeout(source);
+    assert_in_range(put_timeout, frame_ms-frame_ms/4-2, frame_ms-frame_ms/4);
+
+    time_sleep(put_timeout);
+    put_count = atolla_source_put_ready_count(source);
+    put_timeout = atolla_source_put_ready_timeout(source);
+    assert_int_equal(0, put_timeout);
+    assert_true(put_count > 0);
+
+    teardown_source(&source, &sink_socket, &builder);
+}
+
 /**
  * Tests if the source accurately limits framerate by blocking if
  * putting too many frames.
@@ -208,7 +274,7 @@ static void test_frame_lag(void **state)
 
     setup_open_source(&source, &sink_socket, &builder);
 
-    int lag = atolla_source_frame_lag(source);
+    int lag = atolla_source_put_ready_count(source);
 
     // After initialization, the remote buffer is empty
     // Hence, the source lags behind the maximum amount of buffered frames
@@ -220,20 +286,20 @@ static void test_frame_lag(void **state)
     for(int i = 0; i < buffered_frame_count; ++i)
     {
         atolla_source_put(source, frame, frame_len);
-        lag = atolla_source_frame_lag(source);
+        lag = atolla_source_put_ready_count(source);
 
         assert_int_equal((buffered_frame_count - (i + 1)), lag);
     }
 
     // After completely filling the buffer, the lag should be zero, compensating for natural extra lag
-    lag = atolla_source_frame_lag(source);
+    lag = atolla_source_put_ready_count(source);
     assert_int_equal(0, lag);
 
     // When waiting for an amount of frames, the lag should grow
     // appropriately
     const int wait_frame_count = 10;
     time_sleep(wait_frame_count * frame_ms);
-    lag = atolla_source_frame_lag(source);
+    lag = atolla_source_put_ready_count(source);
     assert_int_equal(wait_frame_count, lag);
 
     teardown_source(&source, &sink_socket, &builder);
@@ -282,6 +348,7 @@ int main(void)
         cmocka_unit_test(test_blocking),
         cmocka_unit_test(test_frame_lag),
         cmocka_unit_test(test_borrow_packet_loss)
+        // TODO test blocking with mock function for sleep
     };
     return cmocka_run_group_tests(tests, NULL, NULL);
 }
