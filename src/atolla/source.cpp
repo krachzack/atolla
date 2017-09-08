@@ -215,22 +215,28 @@ bool atolla_source_put(AtollaSource source_handle, void* frame, size_t frame_len
     }
 
     MemBlock* enqueue_msg = msg_builder_enqueue(&source->builder, source->next_frame_idx, frame, frame_len);
-    udp_socket_send(&source->sock, enqueue_msg->data, enqueue_msg->size);
-
-    source->next_frame_idx = (source->next_frame_idx + 1) % 256;
-
-    if(source->last_frame_time == -1)
+    UdpSocketResult send_result = udp_socket_send(&source->sock, enqueue_msg->data, enqueue_msg->size);
+    if(send_result.code != UDP_SOCKET_OK)
     {
-        source->last_frame_time = time_now() - (source->max_buffered_frames - 1) * source->frame_duration_ms;
+        return false;
     }
     else
     {
-        // Otherwise, advanace the last frame time, so we get closer to the point where no more
-        // frame can be enqueued
-        source->last_frame_time += source->frame_duration_ms;
+        source->next_frame_idx = (source->next_frame_idx + 1) % 256;
+        
+        if(source->last_frame_time == -1)
+        {
+            source->last_frame_time = time_now() - (source->max_buffered_frames - 1) * source->frame_duration_ms;
+        }
+        else
+        {
+            // Otherwise, advanace the last frame time, so we get closer to the point where no more
+            // frame can be enqueued
+            source->last_frame_time += source->frame_duration_ms;
+        }
+    
+        return true;   
     }
-
-    return true;
 }
 
 static void source_send_borrow(AtollaSourcePrivate* source)
