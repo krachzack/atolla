@@ -14,21 +14,42 @@ enum AtollaSinkState
 };
 typedef enum AtollaSinkState AtollaSinkState;
 
+/**
+ * Represents an endpoint for atolla sources to connect to.
+ */
 struct AtollaSink
 {
     void* internal;
 };
 typedef struct AtollaSink AtollaSink;
 
+/**
+ * Initialization parameters for a new sink.
+ */
 struct AtollaSinkSpec
 {
+    /**
+     * UDP port that the sink will run on.
+     */
     int port;
+    /**
+     * Maximum amount of color-triplets that will be returned from atolla_sink_get.
+     * The atolla_sink_get frame buffer must be three times this number in bytes.
+     */
     int lights_count;
 };
 typedef struct AtollaSinkSpec AtollaSinkSpec;
 
+/**
+ * Intializes and creates a new sink.
+ */
 AtollaSink atolla_sink_make(const AtollaSinkSpec* spec);
 
+/**
+ * Frees data and resources associated with the sink. The sink
+ * cannot be used anymore, unless it is re-initialized with an additional
+ * call to atolla_sink_make.
+ */
 void atolla_sink_free(AtollaSink sink);
 
 /**
