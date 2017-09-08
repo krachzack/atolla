@@ -22,6 +22,7 @@ static void test_connect(void **state)
     source_spec.max_buffered_frames = 0;
     source_spec.retry_timeout_ms = 0;
     source_spec.disconnect_timeout_ms = 0;
+    source_spec.async_make = true;
 
     AtollaSinkSpec sink_spec;
     sink_spec.port = port;
@@ -53,6 +54,7 @@ static void test_stream_rising(void **state)
     source_spec.max_buffered_frames = 0;
     source_spec.retry_timeout_ms = 0;
     source_spec.disconnect_timeout_ms = 0;
+    source_spec.async_make = true;
 
     AtollaSinkSpec sink_spec;
     sink_spec.port = port;

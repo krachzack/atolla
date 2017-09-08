@@ -37,12 +37,12 @@ static void run_source(const char* sink_hostname, int port)
     spec.max_buffered_frames = max_buffered_frames;
     spec.retry_timeout_ms = 0; // 0 means pick a default value
     spec.disconnect_timeout_ms = 0; // 0 means pick a default value
+    spec.async_make = false;
 
     printf("Starting atolla source\n");
 
     AtollaSource source = atolla_source_make(&spec);
-
-    AtollaSourceState state;
+    AtollaSourceState state = atolla_source_state(source);
 
     while((state = atolla_source_state(source)) == ATOLLA_SOURCE_STATE_WAITING) {}
 

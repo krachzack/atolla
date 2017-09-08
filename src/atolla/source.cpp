@@ -13,6 +13,7 @@ static const size_t recv_buf_len = 3 + 65537;
 static const int retry_timeout_ms_default = 10;
 static const int disconnect_timeout_ms_default = 500;
 static const int max_buffered_frames_default = 16;
+static const int blocking_make_refresh_interval = 5;
 
 struct AtollaSourcePrivate
 {
@@ -37,6 +38,7 @@ struct AtollaSourcePrivate
 typedef struct AtollaSourcePrivate AtollaSourcePrivate;
 
 static AtollaSourcePrivate* source_private_make(const AtollaSourceSpec* spec);
+static void source_await_make_completion(AtollaSourcePrivate* source);
 static void source_send_borrow(AtollaSourcePrivate* source);
 static void source_update(AtollaSourcePrivate* source);
 static void source_iterate_recv_buf(AtollaSourcePrivate* sink, size_t received_bytes);
@@ -69,6 +71,11 @@ AtollaSource atolla_source_make(const AtollaSourceSpec* spec)
         source_fail(source, "Sink hostname could not be resolved.");
     }
 
+    if(!spec->async_make)
+    {
+        source_await_make_completion(source);
+    }
+
     AtollaSource source_handle = { source };
     return source_handle;
 }
@@ -90,6 +97,18 @@ static AtollaSourcePrivate* source_private_make(const AtollaSourceSpec* spec)
     source->last_frame_time = 0;
 
     return source;
+}
+
+static void source_await_make_completion(AtollaSourcePrivate* source)
+{
+    while(source->state == ATOLLA_SOURCE_STATE_WAITING)
+    {
+        if(blocking_make_refresh_interval > 0)
+        {
+            time_sleep(blocking_make_refresh_interval);
+        }
+        source_update(source);
+    }
 }
 
 void atolla_source_free(AtollaSource source_handle)

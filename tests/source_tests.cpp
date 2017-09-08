@@ -51,7 +51,7 @@ static void setup_waiting_source(AtollaSource *source, UdpSocket* sink_socket, M
 
     MemBlock receive_block = mem_block_alloc(1024);
 
-    AtollaSourceSpec spec = { "127.0.0.1", port, frame_ms, buffered_frame_count, retry_timeout_ms, disconnect_timeout_ms };
+    AtollaSourceSpec spec = { "127.0.0.1", port, frame_ms, buffered_frame_count, retry_timeout_ms, disconnect_timeout_ms, true };
     *source = atolla_source_make(&spec);
 
     AtollaSourceState source_state = atolla_source_state(*source);
@@ -349,6 +349,7 @@ int main(void)
         cmocka_unit_test(test_frame_lag),
         cmocka_unit_test(test_borrow_packet_loss)
         // TODO test blocking with mock function for sleep
+        // TODO test spec->async_make set to true
     };
     return cmocka_run_group_tests(tests, NULL, NULL);
 }

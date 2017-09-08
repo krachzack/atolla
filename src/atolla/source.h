@@ -87,6 +87,20 @@ struct AtollaSourceSpec
      * A value of zero lets the implementation pick a default value.
      */
     int disconnect_timeout_ms;
+    /**
+     * If set to true, atolla_source_make will not await completion of the
+     * borrowing process before returning from atolla_source_make. After returning,
+     * the state will be ATOLLA_SOURCE_STATE_WAITING until the connection is either
+     * open or the connection attempt failed. In order for the source to manage
+     * the asnychroneous borrowing, atolla_source_state should be called in
+     * regular intervals to evaluate incoming packets.
+     *
+     * If set to false, the atolla_source_make function will block until the
+     * borrowing process either failed or completed successfully. After
+     * returning, the source is guaranteed to be in state ATOLLA_SOURCE_STATE_OPEN
+     * or ATOLLA_SOURCE_STATE_ERROR.
+     */
+    bool async_make;
 };
 typedef struct AtollaSourceSpec AtollaSourceSpec;
 
