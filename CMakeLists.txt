@@ -169,4 +169,4 @@ add_cmocka_test(source_to_sink_tests tests/source_to_sink_tests.cpp ${LIBRARY_SR
 add_cmocka_test(time_tests           tests/time_tests.cpp           ${LIBRARY_SRC})
 add_cmocka_test(udp_socket_tests     tests/udp_socket_tests.cpp     ${LIBRARY_SRC})
 
-add_custom_target(test_all DEPENDS mem_ring_tests msg_builder_tests msg_iter_tests sink_tests source_tests time_tests udp_socket_tests COMMAND ../test)
+add_custom_target(test_pretty DEPENDS mem_ring_tests msg_builder_tests msg_iter_tests sink_tests source_tests source_to_sink_tests time_tests udp_socket_tests COMMAND ../test)

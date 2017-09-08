@@ -11,7 +11,7 @@ This repository provides a reference implementation of the UDP-based protocol us
 5. `make` builds all of the above and creates the `build/include` directory with headers for use with the static library.
 
 ## Testing
-In the top level directory of the repository, run `./test`.
+In `build` run either `make test`. Run `make test_pretty` for the same functionality but superior emoji support.
 
 ## Examples
 Run `example_sink` to open a local sink. Next, run any of `example_sine`, `example_yellow` or `example_complementary`
