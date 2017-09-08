@@ -1,6 +1,6 @@
 {
     "name": "atolla",
-    "description": "Library to stream light information over the network using WifiUdp in ESP8266",
+    "description": "Library for color streaming over the network for both embedded and desktop",
     "keywords": "wifi light streaming",
     "repository":
     {
