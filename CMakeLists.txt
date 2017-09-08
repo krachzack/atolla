@@ -1,7 +1,7 @@
 cmake_minimum_required (VERSION 2.6)
 project (Atolla)
 
-find_package(OpenGL REQUIRED)
+find_package(OpenGL)
 
 #
 # Specify cmake module path
