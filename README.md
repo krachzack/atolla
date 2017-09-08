@@ -32,4 +32,4 @@ protocol.
 ## Changelog
 | Version      | Changes                          |
 |--------------|----------------------------------|
-| 1.0          | Initial version of this reference implementation with support for Linux, Mac OS X and ESP8266 with Arduino. |
+| 1.0.0        | Initial version of this reference implementation with support for Linux, Mac OS X and ESP8266 with Arduino. |
