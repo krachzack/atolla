@@ -176,6 +176,7 @@ The following error codes are currently defined:
 |------------|-----------------------------------------------------------|
 | 0          | Tried to enqueue a frame, but the device is not borrowed to the current client. The client either never sent a BORROW or another client has borrowed it now. |
 | 1          | Tried to borrow with a buffer size that the sink cannot provide enough memory for. |
+| 2          | Tried to borrow with a frame length that is too short for the device to keep up with the refresh rate. |
 
 #### Purpose
 Communicates to the client that one of its sent messages could not be
