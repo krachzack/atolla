@@ -6,8 +6,9 @@ This repository provides a reference implementation of the UDP-based protocol us
 ## Building
 1. Clone the repository with `git clone https://github.com/krachzack/atolla.git`.
 2. cd into the checked out repository `cd atolla`.
-3. `./configure` downloads dependencies for examples and then configures compilation of static library, dynamic library, tests and examples, the working directory changes to `build` after successful configuration.
-4. `make` builds all of the above and creates the `build/include` directory with headers for use with the static library.
+3. `./configure` downloads dependencies for examples and then configures compilation of static library, dynamic library, tests and examples.
+4. `cd build` after successful configuration.
+5. `make` builds all of the above and creates the `build/include` directory with headers for use with the static library.
 
 ## Testing
 In the top level directory of the repository, run `./test`.
