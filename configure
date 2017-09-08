@@ -1,0 +1,25 @@
+#!/bin/sh
+
+# Change directory to script directory
+cd "$(dirname "$(realpath "$0")")";
+
+BUILD_DIR="build"
+VENDOR_DIR="vendor"
+
+# Remove vendor directory if already there
+if [ -d "$VENDOR_DIR" ]; then
+  rm -rf "$VENDOR_DIR"
+fi
+
+# And download dependencies
+./download_dependencies
+
+# Remove build directory if already there
+if [ -d "$BUILD_DIR" ]; then
+  mv build/.gitignore oldgitignore && \
+    rm -rf "$BUILD_DIR" && \
+      mkdir "$BUILD_DIR" && \
+        mv oldgitignore build/.gitignore && \
+          cd "$BUILD_DIR" && \
+            cmake ..
+fi
