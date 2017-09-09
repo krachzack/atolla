@@ -28,12 +28,14 @@ static const size_t color_channel_count = 3;
 /** Size of the pending_frames ring buffer in frames */
 static const size_t pending_frames_capacity = 128;
 /** After drop_timeout milliseconds of not receiving anything, the source is assumed to have shut down the connection */
-static const int drop_timeout = 1500;
+static const unsigned int drop_timeout = 1500;
 /**
  * If the frame duration sent with the borrow packet implies a shorter frame duration than this,
  * report an unrecoverable error to the sink.
  */
 static const int frame_length_ms_min = 10;
+
+static const unsigned int NULL_TIME = ~0;
 
 struct AtollaSinkPrivate
 {
@@ -144,7 +146,7 @@ bool atolla_sink_get(AtollaSink sink_handle, void* frame, size_t frame_len)
 
     if(lent)
     {
-        if(sink->time_origin == -1)
+        if(sink->time_origin == NULL_TIME)
         {
             // Set origin on first dequeue
             bool ok = mem_ring_dequeue(&sink->pending_frames, sink->current_frame.data, sink->current_frame.capacity);
@@ -182,7 +184,7 @@ static void sink_update(AtollaSinkPrivate* sink)
 {
     UdpSocketResult result;
 
-    const size_t max_receives = 1;
+    const int max_receives = 1;
 
     // Try receiving until would block
     for(int i = 0; i < max_receives; ++i) {
@@ -273,9 +275,9 @@ static void sink_handle_borrow(AtollaSinkPrivate* sink, uint16_t msg_id, int fra
     {
         sink->frame_duration_ms = frame_length_ms;
         sink->state = ATOLLA_SINK_STATE_LENT;
-        sink->time_origin = -1;
-        sink->last_enqueued_frame_idx = -1;
-        sink->last_recv_time = -1;
+        sink->time_origin = NULL_TIME;
+        sink->last_enqueued_frame_idx = NULL_TIME;
+        sink->last_recv_time = NULL_TIME;
     
         // TODO save source addreess
         sink_send_lent(sink);
@@ -318,12 +320,13 @@ static void sink_enqueue(AtollaSinkPrivate* sink, MemBlock frame)
     uint8_t* frame_buf_bytes = (uint8_t*) sink->received_frame.data;
     uint8_t* frame_input_bytes = (uint8_t*) frame.data;
 
-    for(int light_idx = 0; light_idx < sink->lights_count; ++light_idx)
+    for(size_t light_idx = 0; light_idx < sink->lights_count; ++light_idx)
     {
         size_t offset = light_idx * color_channel_count;
 
-        for(int channel_idx = 0; channel_idx < color_channel_count; ++channel_idx)
+        for(size_t channel_idx = 0; channel_idx < color_channel_count; ++channel_idx)
         {
+            // FIXME potential buffer overflow
             frame_buf_bytes[offset + channel_idx] = frame_input_bytes[(offset + channel_idx) % frame.size];
         }
     }
