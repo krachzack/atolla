@@ -5,8 +5,8 @@
 extern "C" {
 #endif
 
-#include "mem/block.h"
-#include "atolla/primitives.h"
+#include "../atolla/primitives.h"
+#include "../mem/block.h"
 
 /**
  * Assembles atolla messages in an internal memory block that is managed by the

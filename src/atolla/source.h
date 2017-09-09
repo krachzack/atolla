@@ -1,7 +1,7 @@
 #ifndef ATOLLA_SOURCE_H
 #define ATOLLA_SOURCE_H
 
-#include "atolla/primitives.h"
+#include "primitives.h"
 
 enum AtollaSourceState
 {

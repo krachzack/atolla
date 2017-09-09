@@ -1,7 +1,7 @@
-#include "msg/builder.h"
-#include "msg/type.h"
-#include "mem/uint16_byte.h"
-#include "test/assert.h"
+#include "builder.h"
+#include "type.h"
+#include "../mem/uint16_byte.h"
+#include "../test/assert.h"
 #include <string.h>
 
 static const size_t header_len = sizeof(uint8_t)  + // message type

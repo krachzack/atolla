@@ -1,11 +1,11 @@
-#include "atolla/source.h"
-#include "atolla/error_codes.h"
-#include "msg/builder.h"
-#include "msg/iter.h"
-#include "test/assert.h"
-#include "time/now.h"
-#include "time/sleep.h"
-#include "udp_socket/udp_socket.h"
+#include "source.h"
+#include "error_codes.h"
+#include "../msg/builder.h"
+#include "../msg/iter.h"
+#include "../test/assert.h"
+#include "../time/now.h"
+#include "../time/sleep.h"
+#include "../udp_socket/udp_socket.h"
 
 #include <stdlib.h>
 

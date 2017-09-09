@@ -1,9 +1,9 @@
-#include "time/now.h"
+#include "now.h"
 
 #ifdef ARDUINO_ARCH_ESP8266
     #include <Arduino.h>
 #else
-    #include "time/gettime.h"
+    #include "gettime.h"
 #endif
 
 unsigned int time_now()

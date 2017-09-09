@@ -1,5 +1,5 @@
 #include "udp_socket_results_internal.h"
-#include "test/assert.h"
+#include "../test/assert.h"
 
 UdpSocketResult make_success_result()
 {

@@ -5,7 +5,7 @@
 extern "C" {
 #endif
 
-#include "atolla/primitives.h"
+#include "../atolla/primitives.h"
 
 /**
  * References a block of dynamically allocated memory.

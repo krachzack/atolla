@@ -1,7 +1,7 @@
 #ifndef ATOLLA_SINK_H
 #define ATOLLA_SINK_H
 
-#include "atolla/primitives.h"
+#include "primitives.h"
 
 enum AtollaSinkState
 {

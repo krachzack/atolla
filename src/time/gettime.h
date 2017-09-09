@@ -3,7 +3,7 @@
 
 #ifdef __MACH__
     // On systems with mach microkernel such as OS X or iOS use mach timing functions
-    #include "time/mach_gettime.h"
+    #include "mach_gettime.h"
 #else
     // otherwise use posix
     #include <time.h>

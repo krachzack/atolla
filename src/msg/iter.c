@@ -1,6 +1,6 @@
-#include "test/assert.h"
-#include "msg/iter.h"
-#include "mem/uint16le.h"
+#include "iter.h"
+#include "../test/assert.h"
+#include "../mem/uint16le.h"
 #include <string.h>
 
 static MemBlock msg_iter_payload(MsgIter* iter);

@@ -1,4 +1,4 @@
-#include "mem/ring.h"
+#include "ring.h"
 
 #include <string.h>
 

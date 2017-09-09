@@ -1,7 +1,7 @@
 #ifndef MSG_MEM_UINT16LE_H
 #define MSG_MEM_UINT16LE_H
 
-#include "atolla/primitives.h"
+#include "../atolla/primitives.h"
 
 #define IS_BIG_ENDIAN (*(uint16_t *)"\0\xff" < 0x100)
 

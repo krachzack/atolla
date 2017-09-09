@@ -1,6 +1,6 @@
-#include "mem/block.h"
+#include "block.h"
 #include <stdlib.h>
-#include "test/assert.h"
+#include "../test/assert.h"
 
 MemBlock mem_block_make(void* data, size_t size)
 {

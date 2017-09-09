@@ -2,7 +2,7 @@
 
 #include <Arduino.h>
 #include <WifiUdp.h>
-#include "test/assert.h"
+#include "../test/assert.h"
 #include "udp_socket_results_internal.h"
 #include "udp_socket_messages.h"
 

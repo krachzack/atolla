@@ -6,7 +6,7 @@
 #include <stdbool.h>
 #include <string.h> // for memcpy and memset
 #include <errno.h>
-#include "test/assert.h"
+#include "../test/assert.h"
 #include "sockets_headers.h"
 #include "udp_socket_messages.h"
 #include "udp_socket.h"

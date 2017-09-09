@@ -5,7 +5,7 @@
 extern "C" {
 #endif
 
-#include "mem/block.h"
+#include "block.h"
 
 struct MemRing {
     MemBlock buf;

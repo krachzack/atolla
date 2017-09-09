@@ -5,9 +5,9 @@
 extern "C" {
 #endif
 
-#include "atolla/primitives.h"
-#include "msg/type.h"
-#include "mem/block.h"
+#include "type.h"
+#include "../atolla/primitives.h"
+#include "../mem/block.h"
 
 /**
  * Iterates through the messages in the buffer specified by start and end.
