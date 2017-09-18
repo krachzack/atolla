@@ -18,3 +18,8 @@ UdpSocketResult udp_socket_receive(UdpSocket* socket, void* packet_buffer, size_
         return receive_result;
     }
 }
+
+UdpSocketResult udp_socket_send(UdpSocket* socket, void* packet_data, size_t packet_data_len)
+{
+    return udp_socket_send_to(socket, packet_data, packet_data_len, NULL);
+}

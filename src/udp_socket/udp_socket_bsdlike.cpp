@@ -297,6 +297,14 @@ UdpSocketResult udp_socket_set_receiver(UdpSocket* socket, const char* hostname,
 
 UdpSocketResult udp_socket_set_endpoint(UdpSocket* socket, UdpEndpoint* endpoint)
 {
+    if(socket == NULL)
+    {
+        return make_err_result(
+            UDP_SOCKET_ERR_SOCKET_IS_NULL,
+            msg_socket_is_null
+        );
+    }
+
     int error;
     if(endpoint) {
         error = connect(
@@ -324,68 +332,6 @@ UdpSocketResult udp_socket_set_endpoint(UdpSocket* socket, UdpEndpoint* endpoint
             strerror(errno)
         );
     }
-}
-
-UdpSocketResult udp_socket_send(UdpSocket* socket, void* packet_data, size_t packet_data_len)
-{
-    assert(packet_data != NULL);
-    assert(packet_data_len > 0);
-
-    if(socket == NULL)
-    {
-        return make_err_result(
-            UDP_SOCKET_ERR_SOCKET_IS_NULL,
-            msg_socket_is_null
-        );
-    }
-
-    int sent_bytes = send(socket->socket_handle,
-                          packet_data,
-                          packet_data_len,
-                          0);
-
-    if(sent_bytes == -1)
-    {
-        if(errno == EACCES)
-        {
-            return make_err_result(
-                UDP_SOCKET_ERR_BAD_BROADCAST,
-                msg_bad_braodcast
-            );
-        }
-        else if(errno == EAGAIN || errno == EWOULDBLOCK)
-        {
-            return make_err_result(
-                UDP_SOCKET_ERR_WOULDBLOCK,
-                msg_wouldblock
-            );
-        }
-        else if(errno == EDESTADDRREQ)
-        {
-            return make_err_result(
-                UDP_SOCKET_ERR_NO_RECEIVER,
-                msg_no_receiver
-            );
-        }
-        else if(errno == EMSGSIZE)
-        {
-            return make_err_result(
-                UDP_SOCKET_ERR_PACKET_TOO_BIG,
-                msg_packet_too_big
-            );
-        }
-        else
-        {
-            return make_err_result(
-                UDP_SOCKET_ERR_SEND_FAILED,
-                strerror(errno)
-            );
-        }
-    }
-
-    assert(sent_bytes == packet_data_len);
-
-    return make_success_result();
 }
 
 UdpSocketResult udp_socket_receive_from(UdpSocket* socket, void* packet_data, size_t max_packet_size, size_t* received_byte_count, UdpEndpoint* sender)
@@ -449,6 +395,81 @@ UdpSocketResult udp_socket_receive_from(UdpSocket* socket, void* packet_data, si
 
         return make_success_result();
     }
+}
+
+UdpSocketResult udp_socket_send_to(UdpSocket* socket, void* packet_data, size_t packet_data_len, UdpEndpoint* to)
+{
+    assert(packet_data != NULL);
+    assert(packet_data_len > 0);
+
+    if(socket == NULL)
+    {
+        return make_err_result(
+            UDP_SOCKET_ERR_SOCKET_IS_NULL,
+            msg_socket_is_null
+        );
+    }
+
+    ssize_t sent_bytes;
+    if(to)
+    {
+        sent_bytes = sendto(socket->socket_handle,
+                            packet_data,
+                            packet_data_len,
+                            0,
+                            (const struct sockaddr*) &to->addr,
+                            to->addr_len);
+    }
+    else
+    {
+        sent_bytes = send(socket->socket_handle,
+                          packet_data,
+                          packet_data_len,
+                          0);
+    }
+
+    if(sent_bytes == -1)
+    {
+        if(errno == EACCES)
+        {
+            return make_err_result(
+                UDP_SOCKET_ERR_BAD_BROADCAST,
+                msg_bad_braodcast
+            );
+        }
+        else if(errno == EAGAIN || errno == EWOULDBLOCK)
+        {
+            return make_err_result(
+                UDP_SOCKET_ERR_WOULDBLOCK,
+                msg_wouldblock
+            );
+        }
+        else if(errno == EDESTADDRREQ)
+        {
+            return make_err_result(
+                UDP_SOCKET_ERR_NO_RECEIVER,
+                msg_no_receiver
+            );
+        }
+        else if(errno == EMSGSIZE)
+        {
+            return make_err_result(
+                UDP_SOCKET_ERR_PACKET_TOO_BIG,
+                msg_packet_too_big
+            );
+        }
+        else
+        {
+            return make_err_result(
+                UDP_SOCKET_ERR_SEND_FAILED,
+                strerror(errno)
+            );
+        }
+    }
+
+    assert(sent_bytes == packet_data_len);
+
+    return make_success_result();
 }
 
 #endif

@@ -42,6 +42,7 @@ struct AtollaSinkPrivate
     AtollaSinkState state;
 
     UdpSocket socket;
+    UdpEndpoint borrower_endpoint;
 
     int lights_count;
     int frame_duration_ms;
@@ -186,14 +187,14 @@ static void sink_update(AtollaSinkPrivate* sink)
 
     const int max_receives = 1;
 
-    // Try receiving until would block
+    // Try receiving until would block or received max_receives times
     for(int i = 0; i < max_receives; ++i) {
         size_t received_bytes = 0;
-        result = udp_socket_receive(
+        result = udp_socket_receive_from(
             &sink->socket,
             sink->recv_buf, recv_buf_len,
             &received_bytes,
-            true
+            &sink->borrower_endpoint
         );
     
         if(result.code == UDP_SOCKET_OK)
@@ -339,13 +340,13 @@ static void sink_enqueue(AtollaSinkPrivate* sink, MemBlock frame)
 static void sink_send_lent(AtollaSinkPrivate* sink)
 {
     MemBlock* lent_msg = msg_builder_lent(&sink->builder);
-    udp_socket_send(&sink->socket, lent_msg->data, lent_msg->size);
+    udp_socket_send_to(&sink->socket, lent_msg->data, lent_msg->size, &sink->borrower_endpoint);
 }
 
 static void sink_send_fail(AtollaSinkPrivate* sink, uint16_t offending_msg_id, uint8_t error_code)
 {
     MemBlock* lent_msg = msg_builder_fail(&sink->builder, offending_msg_id, error_code);
-    udp_socket_send(&sink->socket, lent_msg->data, lent_msg->size);
+    udp_socket_send_to(&sink->socket, lent_msg->data, lent_msg->size, &sink->borrower_endpoint);
 }
 
 static void sink_drop_borrow(AtollaSinkPrivate* sink)
@@ -355,10 +356,14 @@ static void sink_drop_borrow(AtollaSinkPrivate* sink)
     udp_socket_set_endpoint(&sink->socket, NULL);
 }
 
-static int bounded_diff(int from, int to, int cap) {
-    if(to < from) {
+static int bounded_diff(int from, int to, int cap)
+{
+    if(to < from)
+    {
         return cap - from + to;
-    } else {
+    }
+    else
+    {
         return to - from;
     }
 }

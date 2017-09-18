@@ -56,18 +56,42 @@ UdpSocketResult udp_socket_set_receiver(UdpSocket* socket, const char* hostname,
 
 UdpSocketResult udp_socket_set_endpoint(UdpSocket* socket, UdpEndpoint* endpoint)
 {
-    if(endpoint) {
+    if(endpoint)
+    {
         receiver = endpoint->address;
         receiver_port = endpoint->port;
         has_receiver = true;
-    } else {
+    }
+    else
+    {
         has_receiver = false;
     }
     
     return make_success_result();
 }
 
-UdpSocketResult udp_socket_send(UdpSocket* socket, void* packet_data, size_t packet_data_len)
+/*UdpSocketResult udp_socket_get_endpoint(UdpSocket* socket, UdpEndpoint* endpoint)
+{
+    if(endpoint)
+    {
+        if(has_receiver)
+        {
+            endpoint->address = receiver;
+            endpoint->port = receiver_port;
+        }
+        else
+        {
+            return make_err_result(
+                UDP_SOCKET_ERR_NO_RECEIVER,
+                msg_no_receiver
+            );
+        }
+    }
+
+    return make_success_result();
+}
+*/
+UdpSocketResult udp_socket_send_to(UdpSocket* socket, void* packet_data, size_t packet_data_len, UdpEndpoint* to)
 {
     assert(packet_data != NULL);
     assert(packet_data_len > 0);
@@ -80,14 +104,25 @@ UdpSocketResult udp_socket_send(UdpSocket* socket, void* packet_data, size_t pac
         );
     }
 
-    if(!has_receiver) {
-        return make_err_result(
-            UDP_SOCKET_ERR_NO_RECEIVER,
-            msg_no_receiver
-        );
+    if(to == NULL)
+    {
+        if(has_receiver)
+        {
+            Udp.beginPacket(receiver, receiver_port);
+        }
+        else
+        {
+            return make_err_result(
+                UDP_SOCKET_ERR_NO_RECEIVER,
+                msg_no_receiver
+            );
+        }
+    }
+    else
+    {
+        Udp.beginPacket(to->address, to->port);
     }
 
-    Udp.beginPacket(receiver, receiver_port);
     Udp.write((const uint8_t*) packet_data, packet_data_len);
     Udp.endPacket();
 

@@ -208,7 +208,7 @@ UdpSocketResult udp_socket_set_receiver(UdpSocket* socket, const char* hostname,
  * <code>UDP_SOCKET_ERR_*</code> values and the <code>msg</code> property pointing
  * to a human readable error message.
  */
- UdpSocketResult udp_socket_set_endpoint(UdpSocket* socket, UdpEndpoint* endpoint);
+UdpSocketResult udp_socket_set_endpoint(UdpSocket* socket, UdpEndpoint* endpoint);
 
 /**
  * Sends the packet given using the <code>packet_data</code> pointer and the byte
@@ -217,7 +217,7 @@ UdpSocketResult udp_socket_set_receiver(UdpSocket* socket, const char* hostname,
  * must always point to a valid address space and packet_data_len must be
  * greater than zero.
  *
- * The call does not block. That means that upon return, the UDP packet is
+ * The call does not block. That means that upon successful return, the UDP packet is
  * enqueued and will be sent later in the background.
  *
  * The result of the operation will be signalled with the returned UdpSocketResult
@@ -229,6 +229,26 @@ UdpSocketResult udp_socket_set_receiver(UdpSocket* socket, const char* hostname,
  * to a human readable error message.
  */
 UdpSocketResult udp_socket_send(UdpSocket* socket, void* packet_data, size_t packet_data_len);
+
+/**
+ * Sends the packet given using the <code>packet_data</code> pointer and the byte
+ * length in <code>packet_data_len</code> to the receiver passed with the
+ * <code>to</code> parameter. Any previous set_receiver or set_endpoint calls
+ * will be maintained and <code>udp_socket_send</code> will have the same behavior
+ * as before.
+ *
+ * The call does not block. That means that upon successful return, the UDP packet is
+ * enqueued and will be sent later in the background.
+ *
+ * The result of the operation will be signalled with the returned UdpSocketResult
+ * structure. A successful completion will be signalled with the <code>code</code>
+ * property being set to <code>UDP_SOCKET_OK</code>, which is equivalent to
+ * the integer <code>0</code>. If the operation failed, the error will be
+ * specified with <code>code</code> being set to any of the
+ * <code>UDP_SOCKET_ERR_*</code> values and the <code>msg</code> property pointing
+ * to a human readable error message.
+ */
+ UdpSocketResult udp_socket_send_to(UdpSocket* socket, void* packet_data, size_t packet_data_len, UdpEndpoint* to);
 
 /**
  * TODO document
