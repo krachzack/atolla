@@ -9,7 +9,7 @@
 
 #include <stdlib.h>
 
-static const size_t recv_buf_len = 3 + 65537;
+static const size_t recv_buf_len = 128;
 static const int retry_timeout_ms_default = 10;
 static const int disconnect_timeout_ms_default = 500;
 static const int max_buffered_frames_default = 16;
@@ -32,6 +32,7 @@ struct AtollaSourcePrivate
     unsigned int first_borrow_time;
     unsigned int last_borrow_time;
     unsigned int last_frame_time;
+    unsigned int last_recv_lent_time;
 
     const char* error_msg;
 };
@@ -46,6 +47,7 @@ static void source_lent(AtollaSourcePrivate* source);
 static void source_fail(AtollaSourcePrivate* source, const char* error_msg);
 static void source_receive(AtollaSourcePrivate* source);
 static void source_manage_borrow_packet_loss(AtollaSourcePrivate* source);
+static void source_ensure_lent_resent(AtollaSourcePrivate* source);
 
 AtollaSource atolla_source_make(const AtollaSourceSpec* spec)
 {
@@ -250,6 +252,7 @@ static void source_update(AtollaSourcePrivate* source)
 {
     source_receive(source);
     source_manage_borrow_packet_loss(source);
+    source_ensure_lent_resent(source);
 }
 
 static void source_receive(AtollaSourcePrivate* source)
@@ -289,6 +292,15 @@ static void source_manage_borrow_packet_loss(AtollaSourcePrivate* source)
             // If no lent message was received after the retry timeout, try borrowing again
             source_send_borrow(source);
         }
+    }
+}
+
+static void source_ensure_lent_resent(AtollaSourcePrivate* source)
+{
+    if(source->state == ATOLLA_SOURCE_STATE_OPEN &&
+       (time_now() - source->last_recv_lent_time) > source->disconnect_timeout_ms)
+    {
+        source_fail(source, "The connection to the sink was lost.");
     }
 }
 
@@ -344,8 +356,16 @@ static void source_iterate_recv_buf(AtollaSourcePrivate* source, size_t received
 
 static void source_lent(AtollaSourcePrivate* source)
 {
-    source->state = ATOLLA_SOURCE_STATE_OPEN;
-    source->last_frame_time = -1;
+    if(source->state == ATOLLA_SOURCE_STATE_WAITING)
+    {
+        source->state = ATOLLA_SOURCE_STATE_OPEN;
+        source->last_frame_time = -1;
+        source->last_recv_lent_time = time_now();
+    }
+    else if(source->state == ATOLLA_SOURCE_STATE_OPEN)
+    {
+        source->last_recv_lent_time = time_now();
+    }
 }
 
 static void source_fail(AtollaSourcePrivate* source, const char* error_msg)

@@ -22,7 +22,7 @@ static const int frame_ms = 17;
 static const int buffered_frame_count = 60;
 static const int retry_timeout_ms = loopback_send_time_ms * 3;
 static const int max_retry_count = 5;
-static const int disconnect_timeout_ms = retry_timeout_ms * max_retry_count;
+static const int disconnect_timeout_ms = 300;
 
 /**
  * Initializes a test by creating a source as well as a socket that simulates the sink,
@@ -87,6 +87,13 @@ static void setup_open_source(AtollaSource *source, UdpSocket* sink_socket, MsgB
     // now, the connection should be open
     AtollaSourceState source_state = atolla_source_state(*source);
     assert_int_equal(ATOLLA_SOURCE_STATE_OPEN, source_state);
+}
+
+static void send_relent(UdpSocket* sink_socket, MsgBuilder* builder)
+{
+    MemBlock* msg = msg_builder_lent(builder);
+    UdpSocketResult res = udp_socket_send(sink_socket, msg->data, msg->size);
+    assert_int_equal(res.code, UDP_SOCKET_OK);
 }
 
 static void teardown_source(AtollaSource *source, UdpSocket* sink_socket, MsgBuilder* builder)
@@ -183,6 +190,8 @@ static void test_timing(void **state)
         atolla_source_put(source, frame, 3);
         assert_int_equal(0, put_timeout);
         assert_int_equal(buffered_frame_count-i+1, put_timeout);
+
+        send_relent(&sink_socket, &builder);
     }
 
     put_timeout = atolla_source_put_ready_timeout(source);
@@ -231,6 +240,7 @@ static void test_blocking(void **state)
     for(int i = 0; i < (buffered_frame_count*2); ++i)
     {
         atolla_source_put(source, frame, frame_len);
+        send_relent(&sink_socket, &builder);
     }
 
     int end_time = time_now();
@@ -289,6 +299,7 @@ static void test_frame_lag(void **state)
         lag = atolla_source_put_ready_count(source);
 
         assert_int_equal((buffered_frame_count - (i + 1)), lag);
+        send_relent(&sink_socket, &builder);
     }
 
     // After completely filling the buffer, the lag should be zero, compensating for natural extra lag
@@ -340,6 +351,30 @@ static void test_borrow_packet_loss(void **state)
     teardown_source(&source, &sink_socket, &builder);
 }
 
+static void test_drop_after_no_relend(void **state)
+{
+    AtollaSource source;
+    UdpSocket sink_socket;
+    MsgBuilder builder;
+
+    setup_open_source(&source, &sink_socket, &builder);
+
+    assert_int_equal(ATOLLA_SOURCE_STATE_OPEN, atolla_source_state(source));
+
+    time_sleep(disconnect_timeout_ms / 4 * 3);
+    send_relent(&sink_socket, &builder);
+    time_sleep(loopback_send_time_ms);
+    assert_int_equal(ATOLLA_SOURCE_STATE_OPEN, atolla_source_state(source));
+
+    time_sleep(disconnect_timeout_ms / 4 * 3);
+    assert_int_equal(ATOLLA_SOURCE_STATE_OPEN, atolla_source_state(source));
+
+    time_sleep((disconnect_timeout_ms - (disconnect_timeout_ms / 4 * 3)));
+    assert_int_equal(ATOLLA_SOURCE_STATE_ERROR, atolla_source_state(source));
+
+    teardown_source(&source, &sink_socket, &builder);
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
@@ -347,7 +382,8 @@ int main(void)
         cmocka_unit_test(test_error_transition),
         cmocka_unit_test(test_blocking),
         cmocka_unit_test(test_frame_lag),
-        cmocka_unit_test(test_borrow_packet_loss)
+        cmocka_unit_test(test_borrow_packet_loss),
+        cmocka_unit_test(test_drop_after_no_relend)
         // TODO test blocking with mock function for sleep
         // TODO test spec->async_make set to true
     };
