@@ -10,8 +10,8 @@
 #include <stdlib.h>
 
 static const size_t recv_buf_len = 128;
-static const int retry_timeout_ms_default = 10;
-static const int disconnect_timeout_ms_default = 500;
+static const int retry_timeout_ms_default = 100;
+static const int disconnect_timeout_ms_default = 750;
 static const int max_buffered_frames_default = 16;
 static const int blocking_make_refresh_interval = 5;
 
@@ -161,7 +161,7 @@ int atolla_source_put_ready_count(AtollaSource source_handle)
 
         if(source->last_frame_time == -1)
         {
-            // If connected, but no frame was enqueued yet, also report maximum lag
+            // If connected, but no frame was enqueued yet, report maximum lag
             return source->max_buffered_frames;
         }
         else
@@ -232,7 +232,7 @@ bool atolla_source_put(AtollaSource source_handle, void* frame, size_t frame_len
         }
         else
         {
-            // Otherwise, advanace the last frame time, so we get closer to the point where no more
+            // Otherwise, advance the last frame time, so we get closer to the point where no more
             // frame can be enqueued
             source->last_frame_time += source->frame_duration_ms;
         }
