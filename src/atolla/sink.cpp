@@ -29,6 +29,8 @@ static const size_t color_channel_count = 3;
 static const size_t pending_frames_capacity = 128;
 /** After drop_timeout milliseconds of not receiving anything, the source is assumed to have shut down the connection */
 static const unsigned int drop_timeout = 1500;
+/** Determines in milliseconds how often the LENT package will be repeatedly sent to the current borrower */
+static const unsigned int lent_send_interval = 500;
 /**
  * If the frame duration sent with the borrow packet implies a shorter frame duration than this,
  * report an unrecoverable error to the sink.
@@ -58,7 +60,8 @@ struct AtollaSinkPrivate
     unsigned int time_origin;
     int last_enqueued_frame_idx;
 
-    int last_recv_time;
+    unsigned int last_recv_time;
+    unsigned int last_send_lent_time;
 };
 typedef struct AtollaSinkPrivate AtollaSinkPrivate;
 
@@ -70,6 +73,8 @@ static void sink_enqueue(AtollaSinkPrivate* sink, MemBlock frame);
 static void sink_send_lent(AtollaSinkPrivate* sink);
 static void sink_send_fail(AtollaSinkPrivate* sink, uint16_t offending_msg_id, uint8_t error_code);
 static void sink_update(AtollaSinkPrivate* sink);
+static void sink_receive(AtollaSinkPrivate* sink);
+static void sink_send(AtollaSinkPrivate* sink);
 static void sink_drop_borrow(AtollaSinkPrivate* sink);
 
 static int bounded_diff(int from, int to, int cap);
@@ -182,6 +187,12 @@ bool atolla_sink_get(AtollaSink sink_handle, void* frame, size_t frame_len)
 }
 
 static void sink_update(AtollaSinkPrivate* sink)
+{
+    sink_receive(sink);
+    sink_send(sink);
+}
+
+static void sink_receive(AtollaSinkPrivate* sink)
 {
     UdpSocketResult result;
 
@@ -337,10 +348,22 @@ static void sink_enqueue(AtollaSinkPrivate* sink, MemBlock frame)
     }
 }
 
+static void sink_send(AtollaSinkPrivate* sink)
+{
+    if(sink->state == ATOLLA_SINK_STATE_LENT)
+    {
+        if((time_now() - sink->last_send_lent_time) > lent_send_interval)
+        {
+            sink_send_lent(sink);
+        }
+    }
+}
+
 static void sink_send_lent(AtollaSinkPrivate* sink)
 {
     MemBlock* lent_msg = msg_builder_lent(&sink->builder);
     udp_socket_send_to(&sink->socket, lent_msg->data, lent_msg->size, &sink->borrower_endpoint);
+    sink->last_send_lent_time = time_now();
 }
 
 static void sink_send_fail(AtollaSinkPrivate* sink, uint16_t offending_msg_id, uint8_t error_code)

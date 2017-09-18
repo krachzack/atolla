@@ -47,6 +47,22 @@ static void setup_lent_sink(AtollaSink* sink, UdpSocket* source_sock, MsgBuilder
     time_sleep(loopback_send_time_ms);
 
     assert_int_equal(ATOLLA_SINK_STATE_LENT, atolla_sink_state(*sink));
+
+    time_sleep(loopback_send_time_ms);
+
+    uint8_t buf[256];
+    size_t received_bytes;
+    res = udp_socket_receive(source_sock, buf, 256, &received_bytes, false);
+    assert_int_equal(UDP_SOCKET_OK, res.code);
+    assert_true(received_bytes > 3);
+    assert_int_equal(1, buf[0]); // Message type byte should be 1 for a LENT message
+}
+
+static void teardown_sink(AtollaSink sink, UdpSocket* source_sock, MsgBuilder* builder)
+{
+    atolla_sink_free(sink);
+    udp_socket_free(source_sock);
+    msg_builder_free(builder);
 }
 
 /**
@@ -62,9 +78,6 @@ static void test_fill_sink_buf(void **state)
 
     const size_t frame_len = 3;
     uint8_t frame[frame_len] = { 0, 0, 0 };
-
-    // first, make the buffer more than half full, so the 
-
 
     for(int i = 0; i < buffered_frame_count; ++i)
     {
@@ -100,12 +113,64 @@ static void test_fill_sink_buf(void **state)
 
         time_sleep(frame_length);
     }
+
+    teardown_sink(sink, &source_sock, &builder);
+}
+
+static void test_lend_resend(void **state)
+{
+    AtollaSink sink;
+    UdpSocket source_sock;
+    MsgBuilder builder;
+
+    setup_lent_sink(&sink, &source_sock, &builder);
+
+    const int expected_relent_interval_ms = 500;
+
+    const size_t frame_len = 3;
+    uint8_t frame[frame_len] = { 0, 0, 0 };
+
+
+    for(int i = 0; i < 3; ++i)
+    {
+        // Enqueue one second worth of frames to trigger a relent
+        // If we would not enqueue frames, the sink would drop the connection
+        for(int i = 0; i < ((expected_relent_interval_ms / frame_length) + 1); ++i)
+        {
+            frame[0] = (uint8_t) i;
+            frame[1] = (uint8_t) i;
+            frame[2] = (uint8_t) i;
+    
+            MemBlock* msg = msg_builder_enqueue(&builder, i, frame, frame_len);
+            UdpSocketResult res = udp_socket_send(&source_sock, msg->data, msg->size);
+            if(res.code != UDP_SOCKET_OK)
+            {
+                --i;
+            }
+            else
+            {
+                time_sleep(frame_length);
+                atolla_sink_state(sink); // this just makes sure the sink gets the updates
+            }
+        }
+
+        time_sleep(loopback_send_time_ms);
+        uint8_t buf[256];
+        size_t received_bytes;
+        UdpSocketResult res = udp_socket_receive(&source_sock, buf, 256, &received_bytes, false);
+        assert_int_equal(UDP_SOCKET_OK, res.code);
+        assert_true(received_bytes > 3);
+        assert_int_equal(1, buf[0]); // Message type byte should be 1 for a LENT message
+    }
+
+    teardown_sink(sink, &source_sock, &builder);
 }
 
 int main(void)
 {
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(test_fill_sink_buf),
+        cmocka_unit_test(test_lend_resend)
     };
     return cmocka_run_group_tests(tests, NULL, NULL);
 }
