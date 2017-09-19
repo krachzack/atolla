@@ -352,6 +352,10 @@ static void source_iterate_recv_buf(AtollaSourcePrivate* source, size_t received
                         source_fail(source, "The sink signalled that it could not understand a message or that a message contained a not further specified invalid value. This might be due to incompatible versions of the atolla protocol.");
                         break;
 
+                    case ATOLLA_ERROR_CODE_TIMEOUT:
+                        source_fail(source, "The sink signalled that it did not receive packets for so long, it deems the connection no longer working. This might be due to bad signal quality or the source failing to enqueue frames for too long.");
+                        break;
+
                     default:
                         source_fail(source, "The sink signalled an unrecoverable error state.");
                         break;
@@ -363,7 +367,7 @@ static void source_iterate_recv_buf(AtollaSourcePrivate* source, size_t received
 
             default:
             {
-                source_fail(source, "Malformed or unknown message type received");
+                source_fail(source, "Malformed or unknown message type received from sink. This might be due to incompatible versions of the atolla protocol.");
                 break;
             }
         }
