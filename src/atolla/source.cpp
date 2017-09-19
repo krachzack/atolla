@@ -9,7 +9,16 @@
 
 #include <stdlib.h>
 
-static const size_t recv_buf_len = 128;
+#ifndef ATOLLA_SOURCE_RECV_BUF_LEN
+/**
+ * Determines the maximum size of incoming packets.
+ * This is enough for about 300 lights.
+ *
+ */
+#define ATOLLA_SOURCE_RECV_BUF_LEN 32
+#endif
+
+static const size_t recv_buf_len = ATOLLA_SOURCE_RECV_BUF_LEN;
 static const int retry_timeout_ms_default = 100;
 static const int disconnect_timeout_ms_default = 750;
 static const int max_buffered_frames_default = 16;
@@ -19,7 +28,7 @@ struct AtollaSourcePrivate
 {
     AtollaSourceState state;
     UdpSocket sock;
-    void* recv_buf;
+    uint8_t recv_buf[ATOLLA_SOURCE_RECV_BUF_LEN];
     
     MsgBuilder builder;
 
@@ -87,7 +96,6 @@ static AtollaSourcePrivate* source_private_make(const AtollaSourceSpec* spec)
     AtollaSourcePrivate* source = (AtollaSourcePrivate*) malloc(sizeof(AtollaSourcePrivate));
 
     source->state = ATOLLA_SOURCE_STATE_WAITING;
-    source->recv_buf = malloc(recv_buf_len);
     source->next_frame_idx = 0;
     source->frame_duration_ms = spec->frame_duration_ms;
     source->max_buffered_frames = (spec->max_buffered_frames == 0) ? max_buffered_frames_default : spec->max_buffered_frames;
