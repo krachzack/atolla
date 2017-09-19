@@ -336,6 +336,14 @@ static void source_iterate_recv_buf(AtollaSourcePrivate* source, size_t received
                         source_fail(source, "The sink cannot accomodate the reqest for the given frame duration because it is too short. Try a shorter frame duration.");
                         break;
 
+                    case ATOLLA_ERROR_CODE_LENT_TO_OTHER_SOURCE:
+                        source_fail(source, "The sink refused a request to borrow or enqueue because it is currently lent to another source. Try again later, when the other source has stopped transmission.");
+                        break;
+
+                    case ATOLLA_ERROR_CODE_BAD_MSG:
+                        source_fail(source, "The sink signalled that it could not understand a message or that a message contained a not further specified invalid value. This might be due to incompatible versions of the atolla protocol.");
+                        break;
+
                     default:
                         source_fail(source, "The sink signalled an unrecoverable error state.");
                         break;

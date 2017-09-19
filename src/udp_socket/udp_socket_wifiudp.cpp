@@ -163,4 +163,9 @@ UdpSocketResult udp_socket_send_to(UdpSocket* socket, void* packet_data, size_t 
     }
 }
 
+bool udp_endpoint_equal(UdpEndpoint* a, UdpEndpoint* b)
+{
+    return a->address == b->address && a->port == b->port;
+}
+
 #endif

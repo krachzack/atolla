@@ -267,4 +267,6 @@ UdpSocketResult udp_socket_receive_from(UdpSocket* socket, void* packet_buffer, 
 
 UdpSocketResult udp_socket_receive(UdpSocket* socket, void* packet_buffer, size_t packet_buffer_capacity, size_t* received_byte_count, bool set_sender_as_receiver);
 
+bool udp_endpoint_equal(UdpEndpoint* a, UdpEndpoint* b);
+
 #endif /* _udp_socket_h_ */

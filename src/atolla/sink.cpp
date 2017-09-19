@@ -14,16 +14,16 @@
 #include <string.h>
 #include <stdint.h>
 
-#ifndef ATOLLA_SINK_MAX_MSG_SIZE
+#ifndef ATOLLA_SINK_RECV_BUF_LEN
 /**
  * Determines the maximum size of incoming packets.
  * This is enough for about 300 lights.
  *
  */
-#define ATOLLA_SINK_MAX_MSG_SIZE 1024
+#define ATOLLA_SINK_RECV_BUF_LEN 1024
 #endif
 
-static const size_t recv_buf_len = ATOLLA_SINK_MAX_MSG_SIZE;
+static const size_t recv_buf_len = ATOLLA_SINK_RECV_BUF_LEN;
 static const size_t color_channel_count = 3;
 /** Size of the pending_frames ring buffer in frames */
 static const size_t pending_frames_capacity = 128;
@@ -51,7 +51,7 @@ struct AtollaSinkPrivate
 
     MsgBuilder builder;
 
-    uint8_t recv_buf[ATOLLA_SINK_MAX_MSG_SIZE];
+    uint8_t recv_buf[ATOLLA_SINK_RECV_BUF_LEN];
     MemBlock current_frame;
     // Holds preliminary data when assembling frame from msg
     MemBlock received_frame;
@@ -66,12 +66,13 @@ struct AtollaSinkPrivate
 typedef struct AtollaSinkPrivate AtollaSinkPrivate;
 
 static AtollaSinkPrivate* sink_private_make(const AtollaSinkSpec* spec); 
-static void sink_iterate_recv_buf(AtollaSinkPrivate* sink, size_t received_bytes);
-static void sink_handle_borrow(AtollaSinkPrivate* sink, uint16_t msg_id, int frame_length_ms, size_t buffer_length);
-static void sink_handle_enqueue(AtollaSinkPrivate* sink, size_t frame_idx, MemBlock frame);
+static void sink_iterate_recv_buf(AtollaSinkPrivate* sink, size_t received_bytes, UdpEndpoint* sender);
+static void sink_handle_borrow(AtollaSinkPrivate* sink, uint16_t msg_id, int frame_length_ms, size_t buffer_length, UdpEndpoint* sender);
+static void sink_handle_enqueue(AtollaSinkPrivate* sink, uint16_t msg_id, size_t frame_idx, MemBlock frame, UdpEndpoint* sender);
 static void sink_enqueue(AtollaSinkPrivate* sink, MemBlock frame);
 static void sink_send_lent(AtollaSinkPrivate* sink);
 static void sink_send_fail(AtollaSinkPrivate* sink, uint16_t offending_msg_id, uint8_t error_code);
+static void sink_send_fail_to(AtollaSinkPrivate* sink, uint16_t offending_msg_id, uint8_t error_code, UdpEndpoint* to);
 static void sink_update(AtollaSinkPrivate* sink);
 static void sink_receive(AtollaSinkPrivate* sink);
 static void sink_send(AtollaSinkPrivate* sink);
@@ -146,8 +147,6 @@ bool atolla_sink_get(AtollaSink sink_handle, void* frame, size_t frame_len)
 {
     AtollaSinkPrivate* sink = (AtollaSinkPrivate*) sink_handle.internal;
 
-    //sink_update(sink);
-
     bool lent = sink->state == ATOLLA_SINK_STATE_LENT;
 
     if(lent)
@@ -200,18 +199,19 @@ static void sink_receive(AtollaSinkPrivate* sink)
 
     // Try receiving until would block or received max_receives times
     for(int i = 0; i < max_receives; ++i) {
+        UdpEndpoint sender;
         size_t received_bytes = 0;
         result = udp_socket_receive_from(
             &sink->socket,
             sink->recv_buf, recv_buf_len,
             &received_bytes,
-            &sink->borrower_endpoint
+            &sender
         );
     
         if(result.code == UDP_SOCKET_OK)
         {
             // If another packet available, iterate contained messages
-            sink_iterate_recv_buf(sink, received_bytes);
+            sink_iterate_recv_buf(sink, received_bytes, &sender);
             sink->last_recv_time = time_now();
         }
         else
@@ -226,22 +226,22 @@ static void sink_receive(AtollaSinkPrivate* sink)
     }
 }
 
-static void sink_iterate_recv_buf(AtollaSinkPrivate* sink, size_t received_bytes)
+static void sink_iterate_recv_buf(AtollaSinkPrivate* sink, size_t received_bytes, UdpEndpoint* sender)
 {
     MsgIter iter = msg_iter_make(sink->recv_buf, received_bytes);
 
     for(; msg_iter_has_msg(&iter); msg_iter_next(&iter))
     {
         MsgType type = msg_iter_type(&iter);
+        uint16_t msg_id = msg_iter_msg_id(&iter);
 
         switch(type)
         {
             case MSG_TYPE_BORROW:
             {
-                uint16_t msg_id = msg_iter_msg_id(&iter);
                 uint8_t frame_len = msg_iter_borrow_frame_length(&iter);
                 uint8_t buffer_len = msg_iter_borrow_buffer_length(&iter);
-                sink_handle_borrow(sink, msg_id, frame_len, buffer_len);
+                sink_handle_borrow(sink, msg_id, frame_len, buffer_len, sender);
                 break;
             }
 
@@ -249,79 +249,90 @@ static void sink_iterate_recv_buf(AtollaSinkPrivate* sink, size_t received_bytes
             {
                 uint8_t frame_idx = msg_iter_enqueue_frame_idx(&iter);
                 MemBlock frame = msg_iter_enqueue_frame(&iter);
-                sink_handle_enqueue(sink, frame_idx, frame);
+                sink_handle_enqueue(sink, msg_id, frame_idx, frame, sender);
                 break;
             }
 
             default:
             {
-                assert(false);
+                sink_send_fail_to(sink, msg_id, ATOLLA_ERROR_CODE_BAD_MSG, sender);
                 break;
             }
         }
     }
 }
 
-static void sink_handle_borrow(AtollaSinkPrivate* sink, uint16_t msg_id, int frame_length_ms, size_t buffer_length)
+static void sink_handle_borrow(AtollaSinkPrivate* sink, uint16_t msg_id, int frame_length_ms, size_t buffer_length, UdpEndpoint* sender)
 {
-    if(sink->state == ATOLLA_SINK_STATE_LENT)
+    if(sink->state == ATOLLA_SINK_STATE_OPEN ||
+       (sink->state == ATOLLA_SINK_STATE_LENT && udp_endpoint_equal(sender, &sink->borrower_endpoint))
+      )
     {
-        return;
-    }
+        size_t required_frame_buf_size = buffer_length * (sink->lights_count * color_channel_count);
+        
+        if(required_frame_buf_size > sink->pending_frames.buf.capacity)
+        {
+            sink_send_fail_to(sink, msg_id, ATOLLA_ERROR_CODE_REQUESTED_BUFFER_TOO_LARGE, sender);
+            if(sink->state == ATOLLA_SINK_STATE_LENT) { sink_drop_borrow(sink); }
+        }
+        else if(frame_length_ms < frame_length_ms_min)
+        {
+            sink_send_fail_to(sink, msg_id, ATOLLA_ERROR_CODE_REQUESTED_FRAME_DURATION_TOO_SHORT, sender);
+            if(sink->state == ATOLLA_SINK_STATE_LENT) { sink_drop_borrow(sink); }
+        }
+        else
+        {
+            sink->borrower_endpoint = *sender;
+            sink->frame_duration_ms = frame_length_ms;
+            sink->time_origin = NULL_TIME;
+            sink->last_enqueued_frame_idx = NULL_TIME;
+            sink->last_recv_time = NULL_TIME;
+            sink->state = ATOLLA_SINK_STATE_LENT;
 
-    assert(buffer_length >= 0);
-
-    // Create the frame buffer and initialize it to zero
-    // Consider it full by setting size to capacity
-    size_t required_frame_buf_size = buffer_length * (sink->lights_count * color_channel_count);
-    
-    if(required_frame_buf_size > sink->pending_frames.buf.capacity)
-    {
-        sink_send_fail(sink, msg_id, ATOLLA_ERROR_CODE_REQUESTED_BUFFER_TOO_LARGE);
+            sink_send_lent(sink);
+        }
     }
-    else if(frame_length_ms < frame_length_ms_min)
+    else if(sink->state == ATOLLA_SINK_STATE_LENT)
     {
-        sink_send_fail(sink, msg_id, ATOLLA_ERROR_CODE_REQUESTED_FRAME_DURATION_TOO_SHORT);
+        sink_send_fail_to(sink, msg_id, ATOLLA_ERROR_CODE_LENT_TO_OTHER_SOURCE, sender);
     }
     else
     {
-        sink->frame_duration_ms = frame_length_ms;
-        sink->state = ATOLLA_SINK_STATE_LENT;
-        sink->time_origin = NULL_TIME;
-        sink->last_enqueued_frame_idx = NULL_TIME;
-        sink->last_recv_time = NULL_TIME;
-    
-        // TODO save source addreess
-        sink_send_lent(sink);
+        return; // In error state, do not bother to respond
     }
 }
 
-static void sink_handle_enqueue(AtollaSinkPrivate* sink, size_t frame_idx, MemBlock frame)
+static void sink_handle_enqueue(AtollaSinkPrivate* sink, uint16_t msg_id, size_t frame_idx, MemBlock frame, UdpEndpoint* sender)
 {
-    if(sink->state != ATOLLA_SINK_STATE_LENT)
+    if(sink->state == ATOLLA_SINK_STATE_ERROR)
     {
-        return;
+        return; // In error state, do not bother to respond
     }
-
-    // TODO check if borrow came from borrower
-
-    //const size_t frame_size = sink->lights_count * 3;
-
-    //const size_t frame_buf_frame_count = sink->frame_buf.size / frame_size;
-    //assert(frame_idx >= 0 && frame_idx < frame_buf_frame_count);
-    assert(frame.size >= 3);
-
-    int diff = bounded_diff(sink->last_enqueued_frame_idx, frame_idx, 256);
-    if(diff > 128)
+    else if(sink->state == ATOLLA_SINK_STATE_OPEN)
     {
-        // If would have to skip more than 128, this is an out of order package.
-        // We just drop it.
-        return;
+        sink_send_fail_to(sink, msg_id, ATOLLA_ERROR_CODE_NOT_BORROWED, sender);
     }
-
-    while(diff > 0) {
-        sink_enqueue(sink, frame);
-        diff = bounded_diff(sink->last_enqueued_frame_idx, frame_idx, 256);
+    else
+    {
+        if(udp_endpoint_equal(sender, &sink->borrower_endpoint))
+        {
+            int diff = bounded_diff(sink->last_enqueued_frame_idx, frame_idx, 256);
+            if(diff > 128)
+            {
+                // If would have to skip more than 128, this is an out of order package.
+                // We just drop it.
+                return;
+            }
+        
+            while(diff > 0) {
+                sink_enqueue(sink, frame);
+                diff = bounded_diff(sink->last_enqueued_frame_idx, frame_idx, 256);
+            }
+        }
+        else
+        {
+            sink_send_fail_to(sink, msg_id, ATOLLA_ERROR_CODE_LENT_TO_OTHER_SOURCE, sender);
+        }
     }
 }
 
@@ -368,15 +379,18 @@ static void sink_send_lent(AtollaSinkPrivate* sink)
 
 static void sink_send_fail(AtollaSinkPrivate* sink, uint16_t offending_msg_id, uint8_t error_code)
 {
+    sink_send_fail_to(sink, offending_msg_id, error_code, &sink->borrower_endpoint);
+}
+
+static void sink_send_fail_to(AtollaSinkPrivate* sink, uint16_t offending_msg_id, uint8_t error_code, UdpEndpoint* to)
+{
     MemBlock* lent_msg = msg_builder_fail(&sink->builder, offending_msg_id, error_code);
-    udp_socket_send_to(&sink->socket, lent_msg->data, lent_msg->size, &sink->borrower_endpoint);
+    udp_socket_send_to(&sink->socket, lent_msg->data, lent_msg->size, to);
 }
 
 static void sink_drop_borrow(AtollaSinkPrivate* sink)
 {
     sink->state = ATOLLA_SINK_STATE_OPEN;
-    // Disconnect socket and accept lends from other devices
-    udp_socket_set_endpoint(&sink->socket, NULL);
 }
 
 static int bounded_diff(int from, int to, int cap)

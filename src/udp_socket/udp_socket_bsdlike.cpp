@@ -472,4 +472,15 @@ UdpSocketResult udp_socket_send_to(UdpSocket* socket, void* packet_data, size_t 
     return make_success_result();
 }
 
+bool udp_endpoint_equal(UdpEndpoint* a, UdpEndpoint* b)
+{
+    if(a->addr_len != b->addr_len)
+    {
+        return false;
+    }
+
+    const size_t len = a->addr_len;
+    return 0 == memcmp(&a->addr, &b->addr, len);
+}
+
 #endif
