@@ -106,6 +106,7 @@ include_directories(src ${CMOCKA_INCLUDE})
 configure_file(src/atolla/primitives.h ${CMAKE_CURRENT_BINARY_DIR}/include/atolla/primitives.h COPYONLY)
 configure_file(src/atolla/sink.h ${CMAKE_CURRENT_BINARY_DIR}/include/atolla/sink.h COPYONLY)
 configure_file(src/atolla/source.h ${CMAKE_CURRENT_BINARY_DIR}/include/atolla/source.h COPYONLY)
+configure_file(src/atolla/version.h ${CMAKE_CURRENT_BINARY_DIR}/include/atolla/version.h COPYONLY)
 
 #
 # Define source files for building
@@ -115,6 +116,7 @@ set(
     src/atolla/primitives.h
     src/atolla/sink.h
     src/atolla/source.h
+    src/atolla/version.h
     src/atolla/error_codes.h
     src/mem/block.h
     src/mem/ring.h
