@@ -172,11 +172,14 @@ The payload is organized in this way:
 
 The following error codes are currently defined:
 
-| Error code | Meaning                                                   |
-|------------|-----------------------------------------------------------|
-| 0          | Tried to enqueue a frame, but the device is not borrowed to the current client. The client either never sent a BORROW or another client has borrowed it now. |
-| 1          | Tried to borrow with a buffer size that the sink cannot provide enough memory for. |
-| 2          | Tried to borrow with a frame length that is too short for the device to keep up with the refresh rate. |
+| Error code | Suggested Alias  |                                Meaning  |
+|------------|-------|------------------------------------------|
+| 0 | ATOLLA&shy;_ERROR_CODE&shy;_NOT_BORROWED | Tried to enqueue a frame on a sink that is not currently borrowed to anyone. References the msg_id of the borrow as causing message ID. |
+| 1 | ATOLLA&shy;_ERROR_CODE&shy;_REQUESTED_BUFFER&shy;_TOO_LARGE | Tried to borrow with a buffer size that the sink cannot provide enough memory for. References the msg_id of the borrow as causing message ID. |
+| 2 | ATOLLA&shy;_ERROR_CODE&shy;_REQUESTED_FRAME&shy;_DURATION&shy;_TOO_SHORT | Tried to borrow with a frame length that is too short for the device to keep up with the refresh rate. References the msg_id of the borrow as causing message ID. |
+| 3 | ATOLLA&shy;_ERROR_CODE&shy;_LENT_TO&shy;_OTHER_SOURCE | Tried to either borrow a sink or enqueue a frame on a sink that is currently borrowed to another source. References the message id of the offending BORROW or ENQUEUE message. |
+| 4 | ATOLLA&shy;_ERROR_CODE&shy;_BAD_MSG | Sent a message to the sink that was of an unexpected format or contained data that was invalid. Encountering this error is a strong hint that protocol versions of source and sink are incompatible. However, errors in implementations can also cause malformed messages to be sent. References the offending message ID. |
+| 5 | ATOLLA&shy;_ERROR_CODE&shy;_TIMEOUT | The sink informs the borrowed source that it will now shut down the connection because it did not receive any messages from the source for an implementation defined interval and assumed the source to have shut down. The source needs to be lent again in order to accept enqueue messages again. The offending message ID is not used and will always be set to zero with this error code. |
 
 #### Purpose
 Communicates to the client that one of its sent messages could not be
@@ -198,4 +201,5 @@ Nonetheless, here are some recommendations for implementors to provide some mimi
 
 | Version      | Changes                          |
 |--------------|----------------------------------|
+| 1.1          | Added additional error codes 2 up to 5, added suggested aliases for error codes, clarified use of error code 0 with respect to new error codes. |
 | 1.0          | Initial version of this document |
