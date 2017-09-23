@@ -1,12 +1,12 @@
-# Atolla Protocol 1.0
-This document describes the protocol that the Atolla project uses for
-communications between Atolla devices and their clients.
+# atolla Protocol 1.1
+This document describes the protocol that the *atolla* project uses for communications between sources and sinks of light color streams.
+
+Release [1.1.0](https://github.com/krachzack/atolla/releases/tag/1.1.0) of the implementation located in  [github.com/krachzack/atolla](https://github.com/krachzack/atolla) is the reference implementation associated with this version of the spec.
 
 ## Introduction
-The protocol enables the client to connect to devices and stream buffered light
-information. The protocol is binary, efficient, quite simple and does not assume
-the same native byte order for the communicating peers. It may be used on top of
-both unreliable protocols like UDP and reliable protocols like TCP.
+The binary *atolla* protocol described in this document is designed to provide a stream of light colors to light sinks through a network.
+
+It is designed to work with both unreliable and reliable transport protocols such as UDP or TCP. Furthermore it strives to be efficient and lightweight in order to ease implementation of the protocol in memory-restricted or embedded environments.
 
 ## Endianness
 Multi-byte integers are always transmitted in little endian byte order. Hence,
@@ -189,7 +189,7 @@ communicate the type of error and which message caused it, but no human-readable
 descriptions of the error.
 
 ## Security
-The Atolla protocol is not particularly security aware. For example, it
+The *atolla* protocol is not particularly security aware. For example, it
 provides no means for authentication or access control. Such functionality
 might be added in future versions.
 
@@ -201,5 +201,5 @@ Nonetheless, here are some recommendations for implementors to provide some mimi
 
 | Version      | Changes                          |
 |--------------|----------------------------------|
-| 1.1          | Added additional error codes 2 up to 5, added suggested aliases for error codes, clarified use of error code 0 with respect to new error codes. |
-| 1.0          | Initial version of this document |
+| 1.1          | Added additional error codes 2 up to 5, added suggested aliases for error codes, clarified use of error code 0 with respect to new error codes, changed wording of introduction, consistently using lower-case version "atolla". |
+| 1.0          | Initial version of this document. |
