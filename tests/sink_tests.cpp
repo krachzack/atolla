@@ -15,6 +15,8 @@ extern "C" {
 static const int port = 61489;
 static const uint8_t frame_length = 17;
 static const uint8_t buffered_frame_count = 50;
+static const int lights_count = 12;
+
 /**
  * A time in milliseconds to wait in order to wait for data to be sent through local
  * loopback and arrive at the other local end.
@@ -25,7 +27,7 @@ static void setup_open_sink(AtollaSink* sink, UdpSocket* source_sock, MsgBuilder
 {
     AtollaSinkSpec spec;
     spec.port = port;
-    spec.lights_count = 1;
+    spec.lights_count = lights_count;
 
     *sink = atolla_sink_make(&spec);
     assert_int_equal(ATOLLA_SINK_STATE_OPEN, atolla_sink_state(*sink));
@@ -166,11 +168,46 @@ static void test_lend_resend(void **state)
     teardown_sink(sink, &source_sock, &builder);
 }
 
+static void test_get_repeat_pattern(void **state)
+{
+    AtollaSink sink;
+    UdpSocket source_sock;
+    MsgBuilder builder;
+
+    setup_lent_sink(&sink, &source_sock, &builder);
+
+    const size_t frame_len = 6;
+    uint8_t frame[frame_len] = { 0, 0, 0, 255, 255, 255 };
+
+    for(int i = 0; i < buffered_frame_count; ++i)
+    {
+        MemBlock* msg = msg_builder_enqueue(&builder, i, frame, frame_len);
+        UdpSocketResult res = udp_socket_send(&source_sock, msg->data, msg->size);
+        if(res.code != UDP_SOCKET_OK)
+        {
+            --i;
+        }
+        else
+        {
+            atolla_sink_state(sink); // this just makes sure the sink gets the updates
+        }
+    }
+
+    uint8_t got_frame[lights_count*3];
+    atolla_sink_get(sink, got_frame, lights_count*3);
+    assert_memory_equal(got_frame, frame, frame_len);
+    assert_memory_equal(got_frame+frame_len, frame, frame_len);
+    assert_memory_equal(got_frame+frame_len+frame_len, frame, frame_len);
+
+    teardown_sink(sink, &source_sock, &builder);
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(test_fill_sink_buf),
-        cmocka_unit_test(test_lend_resend)
+        cmocka_unit_test(test_lend_resend),
+        cmocka_unit_test(test_get_repeat_pattern)
     };
     return cmocka_run_group_tests(tests, NULL, NULL);
 }

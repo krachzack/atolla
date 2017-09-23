@@ -78,6 +78,7 @@ static void sink_receive(AtollaSinkPrivate* sink);
 static void sink_send(AtollaSinkPrivate* sink);
 static void sink_drop_borrow(AtollaSinkPrivate* sink);
 
+static void fill_with_pattern(void* target, size_t target_len, void* pattern, size_t pattern_len);
 static int bounded_diff(int from, int to, int cap);
 
 
@@ -176,9 +177,7 @@ bool atolla_sink_get(AtollaSink sink_handle, void* frame, size_t frame_len)
             }
         }
 
-        const size_t frame_size = sink->lights_count * color_channel_count;
-        assert(frame_len >= frame_size);
-        memcpy(frame, sink->current_frame.data, sink->current_frame.capacity);
+        fill_with_pattern(frame, frame_len, sink->current_frame.data, sink->current_frame.capacity);
     }
 
     return lent;
@@ -347,21 +346,10 @@ static void sink_handle_enqueue(AtollaSinkPrivate* sink, uint16_t msg_id, size_t
 
 static void sink_enqueue(AtollaSinkPrivate* sink, MemBlock frame)
 {
-    uint8_t* frame_buf_bytes = (uint8_t*) sink->received_frame.data;
-    uint8_t* frame_input_bytes = (uint8_t*) frame.data;
-
-    for(size_t light_idx = 0; light_idx < sink->lights_count; ++light_idx)
-    {
-        size_t offset = light_idx * color_channel_count;
-
-        for(size_t channel_idx = 0; channel_idx < color_channel_count; ++channel_idx)
-        {
-            // since light_idx + channel_idx is always < sink->lights_count * color_channel_count
-            // this is safe from overflow in frame_buf_bytes
-            size_t frame_buf_idx = offset + channel_idx;
-            frame_buf_bytes[frame_buf_idx] = frame_input_bytes[(offset + channel_idx) % frame.size];
-        }
-    }
+    fill_with_pattern(
+        sink->received_frame.data, sink->received_frame.capacity,
+        frame.data, frame.size
+    );
 
     if(mem_ring_enqueue(&sink->pending_frames, sink->received_frame.data, sink->received_frame.capacity)) {
         sink->last_enqueued_frame_idx = (sink->last_enqueued_frame_idx + 1) % 256;
@@ -400,6 +388,29 @@ static void sink_send_fail_to(AtollaSinkPrivate* sink, uint16_t offending_msg_id
 static void sink_drop_borrow(AtollaSinkPrivate* sink)
 {
     sink->state = ATOLLA_SINK_STATE_OPEN;
+}
+
+static void fill_with_pattern(void* target, size_t target_len, void* pattern, size_t pattern_len)
+{
+    if(target_len == 0) return;
+    if(pattern_len == 0) return;
+
+    uint8_t* offset_target = (uint8_t*) target;
+    
+    while(target_len > 0)
+    {
+        if(pattern_len >= target_len)
+        {
+            memcpy(offset_target, pattern, target_len);
+            target_len = 0;
+        }
+        else
+        {
+            memcpy(offset_target, pattern, pattern_len);
+            offset_target += pattern_len;
+            target_len -= pattern_len;
+        }
+    }
 }
 
 static int bounded_diff(int from, int to, int cap)

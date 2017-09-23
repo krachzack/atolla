@@ -33,8 +33,13 @@ struct AtollaSinkSpec
      */
     int port;
     /**
-     * Maximum amount of color-triplets that will be returned from atolla_sink_get.
-     * The atolla_sink_get frame buffer must be three times this number in bytes.
+     * Maximum amount of color-triplets that will be remembered from enqueue messages,
+     * typically at least the amount of physical lights. Reduce this number if packages
+     * get too big and quality of service drops.
+     *
+     * If atolla_sink_get is called with a buffer for more lights, the received pattern
+     * is repeated. If atolla_sink_get is called with a buffer for less lights, the
+     * received pattern is truncated to fit.
      */
     int lights_count;
 };
@@ -65,6 +70,11 @@ AtollaSinkState atolla_sink_state(AtollaSink sink);
  * incoming packets in order for atolla_sink_get to provide results.
  *
  * If returns false, no frame available yet.
+ *
+ * If atolla_sink_get is called with a buffer for more lights than
+ * set in the spec, the stored frame is repeated as a pattern to fill
+ * all of the given buffer. If atolla_sink_get is called with a buffer
+ * for less lights, the received pattern is truncated to fit.
  */
 bool atolla_sink_get(AtollaSink sink, void* frame, size_t frame_len);
 
