@@ -72,17 +72,19 @@ AtollaSource atolla_source_make(const AtollaSourceSpec* spec)
     UdpSocketResult result;
     
     result = udp_socket_init(&source->sock);
-    assert(result.code == UDP_SOCKET_OK);
-
-    result = udp_socket_set_receiver(&source->sock, spec->sink_hostname, (unsigned short) spec->sink_port);
     if(result.code == UDP_SOCKET_OK) {
-        // If hostname could be resolved, send first borrow
-        source->first_borrow_time = time_now();
-        source_send_borrow(source);
+        result = udp_socket_set_receiver(&source->sock, spec->sink_hostname, (unsigned short) spec->sink_port);
+        if(result.code == UDP_SOCKET_OK) {
+            // If hostname could be resolved, send first borrow
+            source->first_borrow_time = time_now();
+            source_send_borrow(source);
+        } else {
+            // If resolving failed, immediately enter error state
+            source->state = ATOLLA_SOURCE_STATE_ERROR;
+            source_fail(source, "Sink hostname could not be resolved.");
+        }
     } else {
-        // If resolving failed, immediately enter error state
-        source->state = ATOLLA_SOURCE_STATE_ERROR;
-        source_fail(source, "Sink hostname could not be resolved.");
+        source_fail(source, "Sink could not bind to port.");
     }
 
     if(!spec->async_make)
@@ -128,8 +130,7 @@ void atolla_source_free(AtollaSource source_handle)
 {
     AtollaSourcePrivate* source = (AtollaSourcePrivate*) source_handle.internal;
 
-    UdpSocketResult result = udp_socket_free(&source->sock);
-    assert(result.code == UDP_SOCKET_OK);
+    udp_socket_free(&source->sock);
 
     free(source);
 }

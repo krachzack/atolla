@@ -124,8 +124,7 @@ void atolla_sink_free(AtollaSink sink_handle)
 
     msg_builder_free(&sink->builder);
 
-    UdpSocketResult result = udp_socket_free(&sink->socket);
-    assert(result.code == UDP_SOCKET_OK);
+    udp_socket_free(&sink->socket);
 
     mem_block_free(&sink->current_frame);
     mem_block_free(&sink->received_frame);
