@@ -193,14 +193,18 @@ int atolla_source_put_ready_timeout(AtollaSource source_handle)
         // report lagging behind 0 frames
         return -1;
     }
+    else if(source->last_frame_time == -1)
+    {
+        return 0;
+    }
     else
     {
-        // Otherwise calculate time until next frame can be put
-        unsigned int lag_ms = time_now() - source->last_frame_time;
-        if(lag_ms > source->frame_duration_ms) {
+        int readyCount = (time_now() - source->last_frame_time) / source->frame_duration_ms;
+
+        if(readyCount > 0) {
             return 0;
         } else {
-            return source->frame_duration_ms - lag_ms;
+            return (source->last_frame_time + source->frame_duration_ms) - time_now();
         }
     }    
 }
@@ -306,7 +310,7 @@ static void source_manage_borrow_packet_loss(AtollaSourcePrivate* source)
 static void source_ensure_lent_resent(AtollaSourcePrivate* source)
 {
     if(source->state == ATOLLA_SOURCE_STATE_OPEN &&
-       (time_now() - source->last_recv_lent_time) > source->disconnect_timeout_ms)
+       (time_now() - source->last_recv_lent_time) >= source->disconnect_timeout_ms)
     {
         source_fail(source, "The connection to the sink was lost.");
     }
