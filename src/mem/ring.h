@@ -1,5 +1,5 @@
-#ifndef MSG_RING_H
-#define MSG_RING_H
+#ifndef MEM_RING_H
+#define MEM_RING_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -68,4 +68,4 @@ bool mem_ring_enqueue(MemRing* ring, void* buf, size_t buf_len);
 }
 #endif
 
-#endif // MSG_RING_H
+#endif // MEM_RING_H

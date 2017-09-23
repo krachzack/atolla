@@ -348,8 +348,6 @@ static void sink_handle_enqueue(AtollaSinkPrivate* sink, uint16_t msg_id, size_t
 
 static void sink_enqueue(AtollaSinkPrivate* sink, MemBlock frame)
 {
-    const size_t frame_size = sink->lights_count * color_channel_count;
-
     uint8_t* frame_buf_bytes = (uint8_t*) sink->received_frame.data;
     uint8_t* frame_input_bytes = (uint8_t*) frame.data;
 
@@ -359,8 +357,10 @@ static void sink_enqueue(AtollaSinkPrivate* sink, MemBlock frame)
 
         for(size_t channel_idx = 0; channel_idx < color_channel_count; ++channel_idx)
         {
-            // FIXME potential buffer overflow
-            frame_buf_bytes[offset + channel_idx] = frame_input_bytes[(offset + channel_idx) % frame.size];
+            // since light_idx + channel_idx is always < sink->lights_count * color_channel_count
+            // this is safe from overflow in frame_buf_bytes
+            size_t frame_buf_idx = offset + channel_idx;
+            frame_buf_bytes[frame_buf_idx] = frame_input_bytes[(offset + channel_idx) % frame.size];
         }
     }
 
