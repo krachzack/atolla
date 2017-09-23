@@ -315,24 +315,33 @@ static void sink_handle_enqueue(AtollaSinkPrivate* sink, uint16_t msg_id, size_t
     }
     else
     {
-        if(udp_endpoint_equal(sender, &sink->borrower_endpoint))
+        if(frame.size < 3)
         {
-            int diff = bounded_diff(sink->last_enqueued_frame_idx, frame_idx, 256);
-            if(diff > 128)
-            {
-                // If would have to skip more than 128, this is an out of order package.
-                // We just drop it.
-                return;
-            }
-        
-            while(diff > 0) {
-                sink_enqueue(sink, frame);
-                diff = bounded_diff(sink->last_enqueued_frame_idx, frame_idx, 256);
-            }
+            // Minimum enqueue length is 3, drop connection after illegal message
+            sink_send_fail_to(sink, msg_id, ATOLLA_ERROR_CODE_BAD_MSG, sender);
+            sink_drop_borrow(sink);
         }
         else
         {
-            sink_send_fail_to(sink, msg_id, ATOLLA_ERROR_CODE_LENT_TO_OTHER_SOURCE, sender);
+            if(udp_endpoint_equal(sender, &sink->borrower_endpoint))
+            {
+                int diff = bounded_diff(sink->last_enqueued_frame_idx, frame_idx, 256);
+                if(diff > 128)
+                {
+                    // If would have to skip more than 128, this is an out of order package.
+                    // We just drop it.
+                    return;
+                }
+            
+                while(diff > 0) {
+                    sink_enqueue(sink, frame);
+                    diff = bounded_diff(sink->last_enqueued_frame_idx, frame_idx, 256);
+                }
+            }
+            else
+            {
+                sink_send_fail_to(sink, msg_id, ATOLLA_ERROR_CODE_LENT_TO_OTHER_SOURCE, sender);
+            }
         }
     }
 }
