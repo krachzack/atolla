@@ -21,7 +21,6 @@ static const int loopback_send_time_ms = 5;
 static const int frame_ms = 17;
 static const int buffered_frame_count = 60;
 static const int retry_timeout_ms = loopback_send_time_ms * 3;
-static const int max_retry_count = 5;
 static const int disconnect_timeout_ms = 300;
 
 /**
@@ -152,6 +151,8 @@ static void test_error_transition(void **state)
     teardown_source(&source, &sink_socket, &builder);
 }
 
+#include <stdio.h>
+
 static void test_timing(void **state)
 {
     AtollaSource source;
@@ -160,21 +161,24 @@ static void test_timing(void **state)
 
     setup_open_source(&source, &sink_socket, &builder);
 
+    AtollaSourceState source_state = atolla_source_state(source);
+    assert_int_equal(ATOLLA_SOURCE_STATE_OPEN, source_state);
+
     int put_timeout = atolla_source_put_ready_timeout(source);
     // With remote buffer empty, no timeout should be necessary
     assert_int_equal(0, put_timeout);
 
     // Initally, should report maximum amount of frames to send
     int put_count = atolla_source_put_ready_count(source);
-    assert_int_equal(buffered_frame_count, put_timeout);
+    assert_int_equal(buffered_frame_count, put_count);
 
     // This will remain unchanged until first put is sent, even
     // when waiting
-    time_sleep(frame_ms * 10);
+    time_sleep(frame_ms + 3);
     put_timeout = atolla_source_put_ready_timeout(source);
     assert_int_equal(0, put_timeout);
     put_count = atolla_source_put_ready_count(source);
-    assert_int_equal(buffered_frame_count, put_timeout);
+    assert_int_equal(buffered_frame_count, put_count);
 
     // Now, enqueue, this will get the clock running
     uint8_t frame[3] = { 255, 254, 253 };
@@ -183,13 +187,24 @@ static void test_timing(void **state)
     put_timeout = atolla_source_put_ready_timeout(source);
     put_count = atolla_source_put_ready_count(source);
     assert_int_equal(0, put_timeout);
-    assert_int_equal(buffered_frame_count-1, put_timeout);
+    assert_int_equal(buffered_frame_count-1, put_count);
 
+    // Skip one because it was put above
     for(int i = 1; i < buffered_frame_count; ++i)
     {
-        atolla_source_put(source, frame, 3);
-        assert_int_equal(0, put_timeout);
-        assert_int_equal(buffered_frame_count-i+1, put_timeout);
+        bool ok = atolla_source_put(source, frame, 3);
+        assert_true(ok);
+
+        put_timeout = atolla_source_put_ready_timeout(source);
+        put_count = atolla_source_put_ready_count(source);
+        assert_int_equal(buffered_frame_count-(i+1), put_count);
+
+        if(i == (buffered_frame_count-1)) {
+            // After putting the last element, there should be a timeout
+            assert_true(put_timeout > 0);
+        } else {
+            assert_int_equal(0, put_timeout);
+        }
 
         send_relent(&sink_socket, &builder);
     }
@@ -206,10 +221,10 @@ static void test_timing(void **state)
     assert_true(put_count > 0);
 
     atolla_source_put(source, frame, 3);
-    assert_in_range(atolla_source_put_ready_timeout(source), frame_ms-2, frame_ms);
+    assert_in_range(atolla_source_put_ready_timeout(source), frame_ms-5, frame_ms);
     time_sleep(frame_ms/4);
     put_timeout = atolla_source_put_ready_timeout(source);
-    assert_in_range(put_timeout, frame_ms-frame_ms/4-2, frame_ms-frame_ms/4);
+    assert_in_range(put_timeout, frame_ms-frame_ms/4-5, frame_ms-frame_ms/4);
 
     time_sleep(put_timeout);
     put_count = atolla_source_put_ready_count(source);
@@ -380,6 +395,7 @@ int main(void)
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(test_source_with_sink_unavailable),
         cmocka_unit_test(test_error_transition),
+        cmocka_unit_test(test_timing),
         cmocka_unit_test(test_blocking),
         cmocka_unit_test(test_frame_lag),
         cmocka_unit_test(test_borrow_packet_loss),
