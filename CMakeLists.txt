@@ -21,11 +21,30 @@ include (CheckSymbolExists)
 include (CheckIncludeFiles)
 include (CheckTypeSize)
 include (TestBigEndian)
+include (CheckCXXCompilerFlag)
+
 
 set (ATOLLA_VERSION_MAJOR 1)
 set (ATOLLA_VERSION_MINOR 0)
 set (ATOLLA_VERSION_PATCH 0)
 
+function(enable_cxx_compiler_flag_if_supported flag)
+    string(FIND "${CMAKE_CXX_FLAGS}" "${flag}" flag_already_set)
+    if(flag_already_set EQUAL -1)
+        check_cxx_compiler_flag("${flag}" flag_supported)
+        if(flag_supported)
+            set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${flag}" PARENT_SCOPE)
+        endif()
+        unset(flag_supported CACHE)
+    endif()
+endfunction()
+
+#
+# Show me your worst warnings for C++
+#
+enable_cxx_compiler_flag_if_supported("-Wall")
+enable_cxx_compiler_flag_if_supported("-pedantic")
+enable_cxx_compiler_flag_if_supported("-sign-compare")
 
 #
 # Check for headers to native bsd-style sockets
