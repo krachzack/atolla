@@ -46,8 +46,8 @@ struct AtollaSinkPrivate
     UdpSocket socket;
     UdpEndpoint borrower_endpoint;
 
-    int lights_count;
-    int frame_duration_ms;
+    unsigned int lights_count;
+    unsigned int frame_duration_ms;
 
     MsgBuilder builder;
 

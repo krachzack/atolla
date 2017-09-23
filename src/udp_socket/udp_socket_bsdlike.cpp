@@ -467,7 +467,7 @@ UdpSocketResult udp_socket_send_to(UdpSocket* socket, void* packet_data, size_t 
         }
     }
 
-    assert(sent_bytes == packet_data_len);
+    assert(((size_t) sent_bytes) == packet_data_len);
 
     return make_success_result();
 }

@@ -2,6 +2,7 @@
 
 #include "mach_gettime.h"
 #include <mach/mach_time.h>
+#include <string.h>
 
 #define MT_NANO (+1.0E-9)
 #define MT_GIGA UINT64_C(1000000000)
@@ -15,7 +16,8 @@ int clock_gettime(clockid_t clk_id, struct timespec *tp)
     kern_return_t retval = KERN_SUCCESS;
     if( clk_id == TIMER_ABSTIME) {
         if (!mt_timestart) { // only one timer, initilized on the first call to the TIMER
-            mach_timebase_info_data_t tb = { 0 };
+            mach_timebase_info_data_t tb;
+            memset(&tb, 0, sizeof(tb));
             mach_timebase_info(&tb);
             mt_timebase = tb.numer;
             mt_timebase /= tb.denom;

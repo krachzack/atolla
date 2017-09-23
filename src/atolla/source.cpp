@@ -19,10 +19,13 @@
 #endif
 
 static const size_t recv_buf_len = ATOLLA_SOURCE_RECV_BUF_LEN;
-static const int retry_timeout_ms_default = 100;
-static const int disconnect_timeout_ms_default = 750;
+static const unsigned int retry_timeout_ms_default = 100;
+static const unsigned int disconnect_timeout_ms_default = 750;
 static const int max_buffered_frames_default = 16;
 static const int blocking_make_refresh_interval = 5;
+/** Special time value meant to represent no time set */
+// FIXME this is actually a valid point in time, maybe use unions with use flag?
+static const unsigned int NULL_TIME = ~0;
 
 struct AtollaSourcePrivate
 {
@@ -33,10 +36,10 @@ struct AtollaSourcePrivate
     MsgBuilder builder;
 
     int next_frame_idx;
-    int frame_duration_ms;
+    unsigned int frame_duration_ms;
     int max_buffered_frames;
-    int retry_timeout_ms;
-    int disconnect_timeout_ms;
+    unsigned int retry_timeout_ms;
+    unsigned int disconnect_timeout_ms;
 
     unsigned int first_borrow_time;
     unsigned int last_borrow_time;
@@ -167,7 +170,7 @@ int atolla_source_put_ready_count(AtollaSource source_handle)
     {
         assert(source->state == ATOLLA_SOURCE_STATE_OPEN);
 
-        if(source->last_frame_time == -1)
+        if(source->last_frame_time == NULL_TIME)
         {
             // If connected, but no frame was enqueued yet, report maximum lag
             return source->max_buffered_frames;
@@ -193,7 +196,7 @@ int atolla_source_put_ready_timeout(AtollaSource source_handle)
         // report lagging behind 0 frames
         return -1;
     }
-    else if(source->last_frame_time == -1)
+    else if(source->last_frame_time == NULL_TIME)
     {
         return 0;
     }
@@ -238,7 +241,7 @@ bool atolla_source_put(AtollaSource source_handle, void* frame, size_t frame_len
     {
         source->next_frame_idx = (source->next_frame_idx + 1) % 256;
         
-        if(source->last_frame_time == -1)
+        if(source->last_frame_time == NULL_TIME)
         {
             source->last_frame_time = time_now() - (source->max_buffered_frames - 1) * source->frame_duration_ms;
         }
@@ -289,9 +292,9 @@ static void source_manage_borrow_packet_loss(AtollaSourcePrivate* source)
 {
     if(source->state == ATOLLA_SOURCE_STATE_WAITING)
     {
-        int now = time_now();
-        int time_since_first_borrow = now - source->first_borrow_time;
-        int time_since_last_borrow = now - source->last_borrow_time;
+        unsigned int now = time_now();
+        unsigned int time_since_first_borrow = now - source->first_borrow_time;
+        unsigned int time_since_last_borrow = now - source->last_borrow_time;
 
         if(time_since_first_borrow > source->disconnect_timeout_ms)
         {
@@ -383,7 +386,7 @@ static void source_lent(AtollaSourcePrivate* source)
     if(source->state == ATOLLA_SOURCE_STATE_WAITING)
     {
         source->state = ATOLLA_SOURCE_STATE_OPEN;
-        source->last_frame_time = -1;
+        source->last_frame_time = NULL_TIME;
         source->last_recv_lent_time = time_now();
     }
     else if(source->state == ATOLLA_SOURCE_STATE_OPEN)
