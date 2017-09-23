@@ -217,7 +217,7 @@ static void sink_receive(AtollaSinkPrivate* sink)
         else
         {
             // drop connections if have not received packets in a while
-            if(sink->state == ATOLLA_SINK_STATE_LENT && (sink->last_recv_time + drop_timeout) < time_now())
+            if(sink->state == ATOLLA_SINK_STATE_LENT && (time_now() - sink->last_recv_time) > drop_timeout)
             {
                 sink_send_fail(sink, 0, ATOLLA_ERROR_CODE_TIMEOUT);
                 sink_drop_borrow(sink);
