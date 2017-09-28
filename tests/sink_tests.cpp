@@ -142,7 +142,7 @@ static void test_lend_resend(void **state)
             frame[0] = (uint8_t) i;
             frame[1] = (uint8_t) i;
             frame[2] = (uint8_t) i;
-    
+
             MemBlock* msg = msg_builder_enqueue(&builder, i, frame, frame_len);
             UdpSocketResult res = udp_socket_send(&source_sock, msg->data, msg->size);
             if(res.code != UDP_SOCKET_OK)
@@ -202,12 +202,36 @@ static void test_get_repeat_pattern(void **state)
     teardown_sink(sink, &source_sock, &builder);
 }
 
+static void test_error_if_port_in_use(void **state)
+{
+    AtollaSinkSpec spec;
+    spec.port = 11110;
+    spec.lights_count = lights_count;
+
+    AtollaSink sink1 = atolla_sink_make(&spec);
+    assert_int_equal(ATOLLA_SINK_STATE_OPEN, atolla_sink_state(sink1));
+    assert_ptr_equal(NULL, atolla_sink_error_msg(sink1));
+
+    AtollaSink sink2 = atolla_sink_make(&spec);
+    // Trying to open sink on same port should fail
+    assert_int_equal(ATOLLA_SINK_STATE_ERROR, atolla_sink_state(sink2));
+    assert_ptr_not_equal(NULL, atolla_sink_error_msg(sink2));
+
+    // But the old sink should remain intact
+    assert_int_equal(ATOLLA_SINK_STATE_OPEN, atolla_sink_state(sink1));
+    assert_ptr_equal(NULL, atolla_sink_error_msg(sink1));
+
+    atolla_sink_free(sink1);
+    atolla_sink_free(sink2);
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(test_fill_sink_buf),
         cmocka_unit_test(test_lend_resend),
-        cmocka_unit_test(test_get_repeat_pattern)
+        cmocka_unit_test(test_get_repeat_pattern),
+        cmocka_unit_test(test_error_if_port_in_use)
     };
     return cmocka_run_group_tests(tests, NULL, NULL);
 }

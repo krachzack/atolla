@@ -78,7 +78,7 @@ static void sink_update(AtollaSinkPrivate* sink);
 static void sink_receive(AtollaSinkPrivate* sink);
 static void sink_send(AtollaSinkPrivate* sink);
 static void sink_drop_borrow(AtollaSinkPrivate* sink);
-static void sink_panic(const char* error_msg);
+static void sink_panic(AtollaSinkPrivate* sink, const char* error_msg);
 
 static void fill_with_pattern(void* target, size_t target_len, void* pattern, size_t pattern_len);
 static int bounded_diff(int from, int to, int cap);
@@ -91,7 +91,7 @@ AtollaSink atolla_sink_make(const AtollaSinkSpec* spec)
     UdpSocketResult result = udp_socket_init_on_port(&sink->socket, (unsigned short) spec->port);
     if(result.code != UDP_SOCKET_OK)
     {
-        sink_panic("Failed to bind source to port specified in spec.");
+        sink_panic(sink, "Failed to bind source to port specified in spec.");
     }
 
     msg_builder_init(&sink->builder);
@@ -143,7 +143,10 @@ AtollaSinkState atolla_sink_state(AtollaSink sink_handle)
 {
     AtollaSinkPrivate* sink = (AtollaSinkPrivate*) sink_handle.internal;
 
-    sink_update(sink);
+    if(sink->state != ATOLLA_SINK_STATE_ERROR)
+    {
+        sink_update(sink);
+    }
 
     return sink->state;
 }
@@ -401,7 +404,8 @@ static void sink_drop_borrow(AtollaSinkPrivate* sink)
     sink->state = ATOLLA_SINK_STATE_OPEN;
 }
 
-static void sink_panic(const char* error_msg) {
+static void sink_panic(AtollaSinkPrivate* sink, const char* error_msg) {
+
     sink->state = ATOLLA_SINK_STATE_ERROR;
     sink->error_msg = error_msg;
 }
