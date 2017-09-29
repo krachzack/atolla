@@ -107,10 +107,10 @@ static void test_send_and_receive(void** state)
     result = udp_socket_init_on_port(&socket2, port2);
     assert_int_equal(result.code, UDP_SOCKET_OK);
 
-    result = udp_socket_set_receiver(&socket1, "127.0.0.1", port2);
+    result = udp_socket_set_receiver(&socket1, "localhost", port2);
     assert_int_equal(result.code, UDP_SOCKET_OK);
 
-    udp_socket_set_receiver(&socket2, "127.0.0.1", port1);
+    result = udp_socket_set_receiver(&socket2, "localhost", port1);
     assert_int_equal(result.code, UDP_SOCKET_OK);
 
     result = udp_socket_send(&socket1, &data, sizeof(data));
@@ -161,7 +161,7 @@ static void test_disconnect(void** state)
     assert_int_equal(result.code, UDP_SOCKET_OK);
     int msg = 42;
 
-    udp_socket_set_receiver(&socket, "127.0.0.1", 10000);
+    udp_socket_set_receiver(&socket, "localhost", 10000);
     result = udp_socket_send(&socket, &msg, sizeof(msg));
     assert_int_equal(result.code, UDP_SOCKET_OK);
 

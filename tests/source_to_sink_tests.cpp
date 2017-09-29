@@ -16,7 +16,7 @@ static const int loopback_send_time_ms = 5;
 static void test_connect(void **state)
 {
     AtollaSourceSpec source_spec;
-    source_spec.sink_hostname = "127.0.0.1";
+    source_spec.sink_hostname = "localhost";
     source_spec.sink_port = port;
     source_spec.frame_duration_ms = frame_duration_ms;
     source_spec.max_buffered_frames = 0;
@@ -48,7 +48,7 @@ static void test_connect(void **state)
 static void test_stream_rising(void **state)
 {
     AtollaSourceSpec source_spec;
-    source_spec.sink_hostname = "127.0.0.1";
+    source_spec.sink_hostname = "localhost";
     source_spec.sink_port = port;
     source_spec.frame_duration_ms = frame_duration_ms;
     source_spec.max_buffered_frames = 0;
@@ -76,7 +76,7 @@ static void test_stream_rising(void **state)
     const int buffered_frame_count = atolla_source_put_ready_count(source);
     for(uint8_t i = 0; i < buffered_frame_count; ++i)
     {
-        uint8_t frame[3] = { i, i, i }; 
+        uint8_t frame[3] = { i, i, i };
         atolla_source_put(source, frame, 3);
     }
 

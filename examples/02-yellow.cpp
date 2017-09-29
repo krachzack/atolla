@@ -36,7 +36,7 @@ static void run_source(const char* sink_hostname, int port)
 static void paint(AtollaSource source)
 {
     uint8_t frame[] = { 255, 255, 0 };
-    
+
     for(int i = 0; (i*frame_length_ms) < run_time_ms; ++i)
     {
         atolla_source_put(source, frame, sizeof(frame) / sizeof(uint8_t));
@@ -46,7 +46,7 @@ static void paint(AtollaSource source)
 int main(int argc, const char* argv[])
 {
     if(argc < 3) {
-        run_source("127.0.0.1", 10042);
+        run_source("localhost", 10042);
     } else {
         const char* sink_hostname = argv[1];
         int port = atoi(argv[2]);

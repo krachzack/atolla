@@ -57,7 +57,7 @@ static void run_source(const char* sink_hostname, int port)
 int main(int argc, const char* argv[])
 {
     if(argc < 3) {
-        run_source("127.0.0.1", 10042);
+        run_source("localhost", 10042);
     } else {
         const char* sink_hostname = argv[1];
         int port = atoi(argv[2]);

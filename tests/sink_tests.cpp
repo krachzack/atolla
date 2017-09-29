@@ -33,7 +33,7 @@ static void setup_open_sink(AtollaSink* sink, UdpSocket* source_sock, MsgBuilder
     assert_int_equal(ATOLLA_SINK_STATE_OPEN, atolla_sink_state(*sink));
 
     udp_socket_init(source_sock);
-    udp_socket_set_receiver(source_sock, "127.0.0.1", port);
+    udp_socket_set_receiver(source_sock, "localhost", port);
 
     msg_builder_init(builder);
 }
